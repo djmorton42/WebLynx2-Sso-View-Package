@@ -5,6 +5,12 @@
   padding: 0;
 }
 
+:root {
+  --safe-x: clamp(24px, 3vw, 58px);
+  --safe-y: clamp(20px, 2.6vh, 30px);
+  --header-height: clamp(78px, 9.2vh, 100px);
+}
+
 body {
   background-color: transparent; /* Transparent for overlay */
   color: #000;
@@ -17,19 +23,35 @@ body {
   position: relative;
 }
 
-/* Logo in top-right corner */
+/* TEMPORARY: remove `preview-background` from <body> before broadcast use. */
+body.preview-background {
+  background: #0b0e12 url("background.png") center / cover no-repeat;
+}
+
+/* Logo — position/size matches announcements_modern; opacity stays subdued */
 .sso-logo {
   position: fixed;
-  top: 30px;
-  right: 50px;
+  top: var(--safe-y);
+  right: var(--safe-x);
+  left: var(--safe-x);
+  height: var(--header-height);
   z-index: 1000;
   opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: calc(clamp(18px, 1.8vw, 34px) + 15px);
+  pointer-events: none;
 }
 
 .sso-logo img {
-  max-height: 120px;
+  display: block;
   width: auto;
-  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  height: clamp(76px, 8.2vh, 92px);
+  max-width: clamp(160px, 12vw, 230px);
+  max-height: calc(var(--header-height) - 8px);
+  object-fit: contain;
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.35));
 }
 
 /* Responsive adjustments for different screen sizes */
