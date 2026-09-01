@@ -293,9 +293,9 @@ body.preview-background {
 }
 
 .split-time {
-  min-width: clamp(68px, 5.5vw, 84px);
+  min-width: clamp(60px, 4.8vw, 74px);
   font-family: var(--condensed);
-  font-size: clamp(14px, 1.05vw, 18px);
+  font-size: clamp(12px, 0.88vw, 15px);
   font-weight: 900;
   line-height: 1;
   letter-spacing: 0.03em;
