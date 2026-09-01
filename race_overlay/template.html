@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="/views/race_overlay/sso-logo.png">
     <link rel="stylesheet" href="/views/race_overlay/styles.css">
   </head>
-  <body>
+  <body class="preview-background">
     <main class="broadcast-overlay" aria-label="Live race overlay">
       <div class="sso-logo">
         <img src="/views/race_overlay/sso-logo.png" alt="Speed Skating Ontario">
@@ -44,18 +44,16 @@
     <script>
       const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
       const SORT_BY = 'place';
-      const LAPS_TO_GO_MILESTONES = [25, 20, 15, 10, 5, 3, 1];
 
-      let lapsToGoShown = new Set();
-      let lapsToGoTimeout = null;
-      let maxLapsRemainingSeen = null;
-      let bellMs = 3000;
+      const lapsToGo = WebLynx.createLapsToGoController();
+      window.testLapsToGo = lapsToGo.testLapsToGo;
+      window.testBellLap = lapsToGo.testBellLap;
 
       function updateRacerBlock(block, racer, context) {
         const { raceStatus, halfLapModeEnabled, config } = context;
         block.querySelector('.lane-color').style.backgroundColor = WebLynx.getLaneColor(config, racer.lane);
-        block.querySelector('.racer-name').textContent = racer.name || '-';
-        block.querySelector('.affiliation').textContent = racer.affiliation || '-';
+        WebLynx.fitOverlayText(block.querySelector('.racer-name'), racer.name || '-');
+        WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
         block.querySelector('.split-time').textContent = WebLynx.formatTime(racer.lastSplitTime);
         WebLynx.setLapCountElement(
           block.querySelector('.lap-count'),
@@ -66,33 +64,6 @@
         );
       }
 
-      function showLapsToGo(milestone) {
-        const container = document.getElementById('bell-lap-container');
-        const iconEl = document.getElementById('bell-lap-icon');
-        const textEl = document.getElementById('bell-lap-text');
-        if (!container || !textEl) return;
-
-        if (milestone === 1) {
-          textEl.textContent = 'Bell Lap';
-          if (iconEl) iconEl.hidden = false;
-        } else {
-          textEl.textContent = milestone + ' Laps to go';
-          if (iconEl) iconEl.hidden = true;
-        }
-
-        container.classList.add('show');
-        if (lapsToGoTimeout) clearTimeout(lapsToGoTimeout);
-        lapsToGoTimeout = setTimeout(() => {
-          container.classList.remove('show');
-        }, bellMs);
-      }
-
-      window.testLapsToGo = function(milestone) {
-        lapsToGoShown.clear();
-        showLapsToGo(milestone);
-      };
-      window.testBellLap = function() { window.testLapsToGo(1); };
-
       function updateRaceData() {
         WebLynx.updateRaceData((data, error) => {
           if (error) {
@@ -101,70 +72,7 @@
           }
 
           const config = WebLynx.applyViewConfig(data);
-          bellMs = (Number(config.bell_lap_duration_seconds) || 3) * 1000;
-
-          const isRaceRunning = WebLynx.isRaceRunning(data.status);
-
-          if (isRaceRunning) {
-            const activeRacers = WebLynx.getActiveRacers(data.racers);
-            let minLapsRemaining = null;
-            let maxLapsRemaining = null;
-
-            activeRacers.forEach((racer) => {
-              let realLapsRemaining = null;
-              if (racer.lapsRemaining !== undefined && racer.lapsRemaining !== null) {
-                realLapsRemaining = racer.lapsRemaining;
-              } else if (racer.realLapsRemaining !== undefined && racer.realLapsRemaining !== null) {
-                realLapsRemaining = racer.realLapsRemaining;
-              } else if (racer.actualLapsRemaining !== undefined && racer.actualLapsRemaining !== null) {
-                realLapsRemaining = racer.actualLapsRemaining;
-              } else if (racer.delayedLapsRemaining !== undefined && racer.delayedLapsRemaining !== null) {
-                realLapsRemaining = racer.delayedLapsRemaining;
-              }
-
-              if (realLapsRemaining !== null) {
-                if (minLapsRemaining === null || realLapsRemaining < minLapsRemaining) {
-                  minLapsRemaining = realLapsRemaining;
-                }
-                if (maxLapsRemaining === null || realLapsRemaining > maxLapsRemaining) {
-                  maxLapsRemaining = realLapsRemaining;
-                }
-              }
-            });
-
-            if (maxLapsRemaining !== null) {
-              maxLapsRemainingSeen = maxLapsRemainingSeen === null
-                ? maxLapsRemaining
-                : Math.max(maxLapsRemainingSeen, maxLapsRemaining);
-            }
-
-            if (minLapsRemaining !== null && maxLapsRemainingSeen !== null) {
-              for (const n of LAPS_TO_GO_MILESTONES) {
-                if (n > maxLapsRemainingSeen) continue;
-                if (minLapsRemaining <= n && !lapsToGoShown.has(n)) {
-                  lapsToGoShown.add(n);
-                  showLapsToGo(n);
-                  break;
-                }
-              }
-            }
-          }
-
-          const isRaceEnded = data.status === 'Finished' || data.status === 3;
-          const isRaceRearmed = WebLynx.isRaceArmed(data);
-
-          if (isRaceEnded || isRaceRearmed) {
-            lapsToGoShown.clear();
-            maxLapsRemainingSeen = null;
-            const bellLapContainer = document.getElementById('bell-lap-container');
-            if (bellLapContainer) {
-              bellLapContainer.classList.remove('show');
-            }
-            if (lapsToGoTimeout) {
-              clearTimeout(lapsToGoTimeout);
-              lapsToGoTimeout = null;
-            }
-          }
+          lapsToGo.update(data, config);
 
           WebLynx.updateRaceClockDisplay(data);
 

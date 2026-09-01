@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="/views/race_overlay_relay/sso-logo.png">
     <link rel="stylesheet" href="/views/race_overlay_relay/styles.css">
   </head>
-  <body>
+  <body class="preview-background">
     <main class="broadcast-overlay" aria-label="Relay race overlay">
       <div class="sso-logo">
         <img src="/views/race_overlay_relay/sso-logo.png" alt="Speed Skating Ontario">
@@ -15,6 +15,11 @@
       <div class="race-clock placard-panel" id="race-clock">00:00.0</div>
 
       <aside class="race-stack" aria-label="Race information">
+        <div class="laps-to-go placard-panel" id="bell-lap-container">
+          <span class="bell-icon" id="bell-lap-icon" aria-hidden="true">&#128276;</span>
+          <span class="laps-to-go-text" id="bell-lap-text">Bell Lap</span>
+        </div>
+
         <div class="event-name placard-panel placard-panel--accent" id="event-name">
           Event Name
         </div>
@@ -38,12 +43,16 @@
       const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
       const SORT_BY = 'lane';
 
+      const lapsToGo = WebLynx.createLapsToGoController();
+      window.testLapsToGo = lapsToGo.testLapsToGo;
+      window.testBellLap = lapsToGo.testBellLap;
+
       function updateRacerBlock(block, racer, context) {
         const { config } = context;
         block.querySelector('.lane-color').style.backgroundColor =
           WebLynx.getLaneColorFromRacerName(config, racer.name);
-        block.querySelector('.racer-name').textContent = racer.name || '-';
-        block.querySelector('.affiliation').textContent = racer.affiliation || '-';
+        WebLynx.fitOverlayText(block.querySelector('.racer-name'), racer.name || '-');
+        WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
       }
 
       function updateRaceData() {
@@ -54,6 +63,7 @@
           }
 
           const config = WebLynx.applyViewConfig(data);
+          lapsToGo.update(data, config);
           WebLynx.updateRaceClockDisplay(data);
 
           const eventName = data.event?.eventName || 'Event Name';

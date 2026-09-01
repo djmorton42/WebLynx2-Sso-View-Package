@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="/views/race_overlay_affiliation/sso-logo.png">
     <link rel="stylesheet" href="/views/race_overlay_affiliation/styles.css">
   </head>
-  <body>
+  <body class="preview-background">
     <main class="broadcast-overlay" aria-label="Affiliation race overlay">
       <div class="sso-logo">
         <img src="/views/race_overlay_affiliation/sso-logo.png" alt="Speed Skating Ontario">
@@ -41,7 +41,7 @@
         const { config } = context;
         block.querySelector('.lane-color').style.backgroundColor =
           WebLynx.getLaneColor(config, racer.lane);
-        block.querySelector('.affiliation').textContent = racer.affiliation || '-';
+        WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
       }
 
       function updateRaceData() {

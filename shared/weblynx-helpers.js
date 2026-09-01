@@ -376,6 +376,188 @@ WebLynx.isRaceArmed = function(data) {
   return notStarted || WebLynx.isClockAtZero(data.currentTime);
 };
 
+/**
+ * Stable identity for the current race heat (used to reset per-race UI state).
+ */
+WebLynx.getRaceIdentity = function(data) {
+  const event = data && data.event;
+  if (!event) return '';
+
+  return [
+    event.eventNumber,
+    event.roundNumber,
+    event.heatNumber,
+    event.eeeRhhName
+  ].join('|');
+};
+
+/**
+ * Best-effort laps remaining for milestone logic (prefers live count over delayed display).
+ * @returns {number|null}
+ */
+WebLynx.getRacerLapsRemaining = function(racer) {
+  if (!racer) return null;
+
+  if (racer.lapsRemaining !== undefined && racer.lapsRemaining !== null) {
+    return racer.lapsRemaining;
+  }
+  if (racer.realLapsRemaining !== undefined && racer.realLapsRemaining !== null) {
+    return racer.realLapsRemaining;
+  }
+  if (racer.actualLapsRemaining !== undefined && racer.actualLapsRemaining !== null) {
+    return racer.actualLapsRemaining;
+  }
+  if (racer.delayedLapsRemaining !== undefined && racer.delayedLapsRemaining !== null) {
+    return racer.delayedLapsRemaining;
+  }
+
+  return null;
+};
+
+/**
+ * Milestone / bell-lap card controller for race overlays.
+ * Tracks lap thresholds per race and toggles the laps-to-go placard.
+ */
+WebLynx.createLapsToGoController = function(options) {
+  const opts = options || {};
+  const milestones = opts.milestones || [25, 20, 15, 10, 5, 3, 1];
+  const containerId = opts.containerId || 'bell-lap-container';
+  const iconId = opts.iconId || 'bell-lap-icon';
+  const textId = opts.textId || 'bell-lap-text';
+
+  let lapsToGoShown = new Set();
+  let lapsToGoTimeout = null;
+  let maxLapsRemainingSeen = null;
+  let previousMinLapsRemaining = null;
+  let currentRaceIdentity = null;
+  let bellMs = 3000;
+
+  function resetLapsToGoState() {
+    lapsToGoShown.clear();
+    maxLapsRemainingSeen = null;
+    previousMinLapsRemaining = null;
+
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.classList.remove('show');
+    }
+    if (lapsToGoTimeout) {
+      clearTimeout(lapsToGoTimeout);
+      lapsToGoTimeout = null;
+    }
+  }
+
+  function showLapsToGo(milestone) {
+    const container = document.getElementById(containerId);
+    const iconEl = document.getElementById(iconId);
+    const textEl = document.getElementById(textId);
+    if (!container || !textEl) return;
+
+    if (milestone === 1) {
+      textEl.textContent = 'Bell Lap';
+      if (iconEl) iconEl.hidden = false;
+    } else {
+      textEl.textContent = milestone + ' Laps to go';
+      if (iconEl) iconEl.hidden = true;
+    }
+
+    if (container.classList.contains('show')) {
+      container.classList.remove('show');
+      void container.offsetWidth;
+    }
+
+    requestAnimationFrame(function() {
+      container.classList.add('show');
+    });
+    if (lapsToGoTimeout) clearTimeout(lapsToGoTimeout);
+    lapsToGoTimeout = setTimeout(function() {
+      container.classList.remove('show');
+      lapsToGoTimeout = null;
+    }, bellMs);
+  }
+
+  function updateFromRaceData(data, viewConfig) {
+    const config = viewConfig || {};
+    bellMs = (Number(config.bell_lap_duration_seconds) || 3) * 1000;
+
+    const raceIdentity = WebLynx.getRaceIdentity(data);
+    const isRaceEnded = data.status === 'Finished' || data.status === 3;
+    const isRaceRearmed = WebLynx.isRaceArmed(data);
+
+    if (raceIdentity !== currentRaceIdentity) {
+      if (currentRaceIdentity !== null) {
+        resetLapsToGoState();
+      }
+      currentRaceIdentity = raceIdentity;
+    }
+
+    if (isRaceEnded || isRaceRearmed) {
+      resetLapsToGoState();
+      return;
+    }
+
+    if (!WebLynx.isRaceRunning(data.status)) {
+      return;
+    }
+
+    const activeRacers = WebLynx.getActiveRacers(data.racers);
+    let minLapsRemaining = null;
+    let maxLapsRemaining = null;
+
+    activeRacers.forEach(function(racer) {
+      const realLapsRemaining = WebLynx.getRacerLapsRemaining(racer);
+      if (realLapsRemaining === null) return;
+
+      if (minLapsRemaining === null || realLapsRemaining < minLapsRemaining) {
+        minLapsRemaining = realLapsRemaining;
+      }
+      if (maxLapsRemaining === null || realLapsRemaining > maxLapsRemaining) {
+        maxLapsRemaining = realLapsRemaining;
+      }
+    });
+
+    if (maxLapsRemaining !== null) {
+      maxLapsRemainingSeen = maxLapsRemainingSeen === null
+        ? maxLapsRemaining
+        : Math.max(maxLapsRemainingSeen, maxLapsRemaining);
+    }
+
+    if (minLapsRemaining === null || maxLapsRemainingSeen === null) {
+      return;
+    }
+
+    const prevMin = previousMinLapsRemaining;
+    previousMinLapsRemaining = minLapsRemaining;
+
+    if (prevMin === null) {
+      return;
+    }
+
+    for (const n of milestones) {
+      if (n > maxLapsRemainingSeen) continue;
+      if (prevMin > n && minLapsRemaining <= n && !lapsToGoShown.has(n)) {
+        lapsToGoShown.add(n);
+        showLapsToGo(n);
+        break;
+      }
+    }
+  }
+
+  return {
+    reset: resetLapsToGoState,
+    update: updateFromRaceData,
+    show: showLapsToGo,
+    testLapsToGo: function(milestone) {
+      lapsToGoShown.clear();
+      showLapsToGo(milestone);
+    },
+    testBellLap: function() {
+      lapsToGoShown.clear();
+      showLapsToGo(1);
+    }
+  };
+};
+
 WebLynx.allRacersHaveNoLapsRemaining = function(racers) {
   const activeRacers = WebLynx.getActiveRacers(racers);
   if (activeRacers.length === 0) return false;
@@ -440,6 +622,95 @@ WebLynx.setTextIfChanged = function(element, text) {
   if (element && element.textContent !== text) {
     element.textContent = text;
   }
+};
+
+/**
+ * Fits overlay label text inside its column: shrinks font size to stay on one line,
+ * then wraps up to two lines at the minimum size if still too long.
+ */
+WebLynx.fitOverlayText = function(element, text, options) {
+  if (!element) return;
+
+  const opts = options || {};
+  const minScale = opts.minScale != null ? opts.minScale : 0.72;
+  const maxLines = opts.maxLines != null ? opts.maxLines : 2;
+  const value = text || '-';
+  const width = element.clientWidth;
+
+  if (width <= 0) {
+    element.textContent = value;
+    requestAnimationFrame(function() {
+      WebLynx.fitOverlayText(element, text, options);
+    });
+    return;
+  }
+
+  const cacheKey = value + '|' + width;
+  if (element._fitOverlayCacheKey === cacheKey) {
+    return;
+  }
+
+  element.textContent = value;
+  element.classList.remove('fit-text--wrap');
+  element.style.fontSize = '';
+  element.style.whiteSpace = '';
+  element.style.overflow = '';
+  element.style.textOverflow = '';
+  element.style.display = '';
+  element.style.webkitLineClamp = '';
+  element.style.webkitBoxOrient = '';
+
+  const maxFontSize = parseFloat(getComputedStyle(element).fontSize);
+  const minFontSize = Math.max(9, maxFontSize * minScale);
+
+  function applySingleLine(fontSizePx) {
+    element.style.fontSize = fontSizePx + 'px';
+    element.style.whiteSpace = 'nowrap';
+    element.style.overflow = 'hidden';
+    element.style.textOverflow = 'clip';
+    element.style.display = '';
+    element.style.webkitLineClamp = '';
+    element.style.webkitBoxOrient = '';
+    return element.scrollWidth <= element.clientWidth + 0.5;
+  }
+
+  function applyWrapped(fontSizePx) {
+    element.style.fontSize = fontSizePx + 'px';
+    element.style.whiteSpace = 'normal';
+    element.style.display = '-webkit-box';
+    element.style.webkitBoxOrient = 'vertical';
+    element.style.webkitLineClamp = String(maxLines);
+    element.style.overflow = 'hidden';
+    element.style.textOverflow = 'ellipsis';
+    element.classList.add('fit-text--wrap');
+  }
+
+  if (applySingleLine(maxFontSize)) {
+    element._fitOverlayCacheKey = cacheKey;
+    return;
+  }
+
+  let low = minFontSize;
+  let high = maxFontSize;
+  let bestFit = null;
+
+  while (high - low > 0.25) {
+    const mid = (low + high) / 2;
+    if (applySingleLine(mid)) {
+      bestFit = mid;
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  if (bestFit != null) {
+    applySingleLine(bestFit);
+  } else {
+    applyWrapped(minFontSize);
+  }
+
+  element._fitOverlayCacheKey = cacheKey;
 };
 
 WebLynx._ensureRaceClockAnimation = function() {
