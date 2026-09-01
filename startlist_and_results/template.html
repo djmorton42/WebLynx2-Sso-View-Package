@@ -151,8 +151,7 @@
 
           if (unofficialIndicator) {
             if (DEMO_RESULTS_VIEW || hasPlaces) {
-              unofficialIndicator.textContent =
-                config.unofficialResultsText || 'Unofficial Results';
+              unofficialIndicator.textContent = 'Unofficial Results';
               unofficialIndicator.hidden = false;
             } else if (sortedRacers.length > 0) {
               unofficialIndicator.textContent = 'Startlist';
