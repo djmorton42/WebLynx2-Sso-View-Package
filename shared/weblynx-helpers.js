@@ -15,13 +15,13 @@ window.WebLynx = window.WebLynx || {};
 /** Last viewConfig applied from a race-data response (used by finishedText helpers). */
 WebLynx._viewConfig = {};
 
-/** Last flat keyValues from a race-data response (fallback for updateInterval). */
+/** Last flat keyValues from a race-data response (fallback for interval config keys). */
 WebLynx._keyValues = {};
 
-/** Active auto-update timer state (interval adopts viewConfig.updateInterval). */
+/** Active auto-update timer state (interval adopts the configured viewConfig key). */
 WebLynx._autoUpdate = null;
 
-/** Bootstrap poll interval until viewConfig.updateInterval is available. */
+/** Bootstrap poll interval until a viewConfig interval key is available. */
 WebLynx.DEFAULT_UPDATE_INTERVAL_MS = 250;
 
 /**
@@ -65,7 +65,7 @@ WebLynx.getConfigIntervalMs = function(config, key, fallback) {
 };
 
 WebLynx.getUpdateIntervalMs = function(config, fallback) {
-  return WebLynx.getConfigIntervalMs(config, 'updateInterval', fallback);
+  return WebLynx.getConfigIntervalMs(config, 'slowUpdateInterval', fallback);
 };
 
 WebLynx.getLaneColor = function(config, lane) {
@@ -618,7 +618,7 @@ WebLynx.syncRacerStack = function(container, items, options) {
  * Poll by invoking updateFunction on an interval.
  * Starts with the bootstrap interval (default 250ms). After the first successful
  * race-data response, switches to the configured viewConfig interval key from view.properties
- * when that value is present and positive (default key: updateInterval).
+ * when that value is present and positive (default key: slowUpdateInterval).
  *
  * The next tick is scheduled only after the previous fetch and view callback finish,
  * so fast intervals do not stack overlapping requests (which caused stutter at 100ms).
@@ -630,7 +630,7 @@ WebLynx.startAutoUpdate = function(
   updateFunction,
   interval = WebLynx.DEFAULT_UPDATE_INTERVAL_MS,
   sortBy = 'place',
-  intervalConfigKey = 'updateInterval'
+  intervalConfigKey = 'slowUpdateInterval'
 ) {
   if (WebLynx._autoUpdate && WebLynx._autoUpdate.timerId != null) {
     clearTimeout(WebLynx._autoUpdate.timerId);
@@ -681,7 +681,7 @@ WebLynx._syncAutoUpdateInterval = function() {
 
   const next = WebLynx.getConfigIntervalMs(
     WebLynx._viewConfig,
-    state.intervalConfigKey || 'updateInterval',
+    state.intervalConfigKey || 'slowUpdateInterval',
     state.intervalMs
   );
   if (next === state.intervalMs) {

@@ -153,8 +153,12 @@
 
   WebLynx.startAnnouncementOverlay = function (options) {
     const opts = options || {};
-    const interval = opts.updateInterval || WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
-    WebLynx.startAutoUpdate(updateAnnouncementData, interval);
+    WebLynx.startAutoUpdate(
+      updateAnnouncementData,
+      WebLynx.DEFAULT_UPDATE_INTERVAL_MS,
+      'place',
+      'slowUpdateInterval'
+    );
     if (opts.sponsorJsonPath) {
       loadSponsorData(opts.sponsorJsonPath);
     }
