@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Announcements — Modern</title>
+    <link rel="icon" type="image/png" href="/views/announcements-modern/sso-logo.png">
+    <link rel="stylesheet" href="/views/announcements-modern/styles.css">
+  </head>
+  <body class="preview-background">
+    <main class="broadcast-overlay" aria-label="Meet information overlay">
+      <header class="event-header">
+        <div class="event-copy">
+          <h1 id="meet-title"></h1>
+          <p id="event-subtitle"></p>
+        </div>
+
+        <div class="speed-line" aria-hidden="true"></div>
+
+        <img
+          class="sso-logo"
+          src="/views/announcements-modern/sso-logo.png"
+          alt="Speed Skating Ontario"
+        />
+      </header>
+
+      <section class="announcement" aria-live="polite" hidden>
+        <span class="announcement-label">Live update</span>
+        <div class="announcement-panel">
+          <div id="announcement-message" class="announcement-message">
+            <div class="loading">Loading announcement...</div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="partner-bar">
+        <p class="partner-heading">Thank you to<br />our partners</p>
+
+        <div class="partner-divider" aria-hidden="true"></div>
+
+        <ul class="partner-list" aria-label="Event partners">
+          <li>
+            <img
+              class="partner-logo partner-logo--cao"
+              src="/views/announcements-modern/sponsors/cao-white.svg"
+              alt="Coaches Association of Ontario"
+            />
+          </li>
+          <li>
+            <img
+              class="partner-logo partner-logo--csi"
+              src="/views/announcements-modern/sponsors/csi-white.svg"
+              alt="Canadian Sport Institute Ontario"
+            />
+          </li>
+          <li>
+            <img
+              class="partner-logo partner-logo--nagano"
+              src="/views/announcements-modern/sponsors/nagano-white.png"
+              alt="Nagano"
+            />
+          </li>
+          <li>
+            <img
+              class="partner-logo partner-logo--ontario"
+              src="/views/announcements-modern/sponsors/ontario-white.svg"
+              alt="Government of Ontario"
+            />
+          </li>
+        </ul>
+
+        <div class="sponsors-right" hidden>
+          <div class="sponsor-title"></div>
+          <div class="sponsor-slides"></div>
+        </div>
+      </footer>
+    </main>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script src="/views/shared/announcements-overlay.js"></script>
+    <script>
+      WebLynx.startAnnouncementOverlay({
+        sponsorJsonPath: '/views/announcements-modern/sponsors/sponsor-text.json'
+      });
+    </script>
+  </body>
+</html>

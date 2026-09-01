@@ -1,0 +1,184 @@
+body {
+  background-color: #000;
+  color: white;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  /* Optimized for 1080p TV displays */
+  width: 1920px;
+  height: 1080px;
+}
+
+.split-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+}
+
+/* Left half - Minimum laps display */
+.left-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 2px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
+}
+
+.minimum-laps {
+  font-size: 50em;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1;
+  color: white;
+  text-shadow: 5px 5px 0px #000000, -5px -5px 0px #000000, 5px -5px 0px #000000, -5px 5px 0px #000000;
+}
+
+.minimum-laps.half-lap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.minimum-laps .half-lap-fraction {
+  font-size: 0.3em;
+  line-height: 1;
+  display: block;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Right half - 2x5 grid */
+.right-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.lap-counter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 15px;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.lap-counter-row {
+  display: contents;
+}
+
+.lap-counter-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+}
+
+.lap-counter-card.empty-card {
+  background-color: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+.laps-remaining {
+  font-size: 12em;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1;
+  position: relative;
+}
+
+/* Special styling for half lap display */
+.laps-remaining.half-lap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transform: translateY(-5%);
+}
+
+.laps-remaining .half-lap-fraction {
+  font-size: 0.15em;
+  margin-top: -0.8em;
+  line-height: 1;
+  display: block;
+}
+
+/* Dynamic font sizing based on number of racers */
+.lap-counter-grid[data-racers="2"] .laps-remaining,
+.lap-counter-grid[data-racers="3"] .laps-remaining,
+.lap-counter-grid[data-racers="4"] .laps-remaining,
+.lap-counter-grid[data-racers="5"] .laps-remaining,
+.lap-counter-grid[data-racers="6"] .laps-remaining,
+.lap-counter-grid[data-racers="7"] .laps-remaining,
+.lap-counter-grid[data-racers="8"] .laps-remaining {
+  font-size: 12em;
+}
+
+.lap-counter-grid[data-racers="9"] .laps-remaining,
+.lap-counter-grid[data-racers="10"] .laps-remaining {
+  font-size: 9em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  body {
+    width: 100%;
+    height: 100vh;
+  }
+  
+  .minimum-laps {
+    font-size: 25em;
+  }
+  
+  .laps-remaining {
+    font-size: 8em;
+  }
+}
+
+@media (max-width: 768px) {
+  .split-container {
+    flex-direction: column;
+  }
+  
+  .left-half {
+    flex: 1;
+    border-right: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .right-half {
+    flex: 1;
+  }
+  
+  .minimum-laps {
+    font-size: 15em;
+  }
+  
+  .lap-counter-grid {
+    padding: 20px;
+    gap: 10px;
+  }
+  
+  .lap-counter-card {
+    padding: 10px;
+  }
+  
+  .laps-remaining {
+    font-size: 5em;
+  }
+}
+

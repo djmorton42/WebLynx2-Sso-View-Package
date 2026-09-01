@@ -1,0 +1,1 @@
+Minimal overlay for recording races for video review. 1920×1080. Bottom left: race number and race name. Bottom right: race clock and current timestamp. No logo.

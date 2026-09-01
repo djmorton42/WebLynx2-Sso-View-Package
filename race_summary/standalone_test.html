@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Race Summary - Test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      body {
+        background: #000000;
+        color: white;
+        font-family: Arial, Helvetica, sans-serif;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+      .race-summary {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #000000;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        padding: 2vw;
+      }
+      .race-number-panel {
+        flex: 0 0 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2vw;
+      }
+      .race-number {
+        font-size: clamp(4rem, 18vw, 22rem);
+        font-weight: 900;
+        color: #fff;
+        text-shadow: 4px 4px 12px rgba(0,0,0,0.9);
+        letter-spacing: 0.05em;
+        line-height: 1;
+      }
+      .content-panel {
+        flex: 0 0 50%;
+        display: flex;
+        flex-direction: column;
+        padding: 2vw;
+        min-width: 0;
+      }
+      .event-title {
+        background-color: #00cc00;
+        color: #000;
+        padding: clamp(12px, 1.5vw, 24px) clamp(20px, 2.5vw, 40px);
+        border-radius: 10px;
+        font-size: clamp(1.4rem, 2.2vw, 2.4rem);
+        font-weight: 900;
+        text-align: center;
+        margin-bottom: clamp(12px, 1.5vw, 24px);
+        text-shadow: 1px 1px 2px rgba(255,255,255,0.3);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        border: 3px solid #fff;
+        letter-spacing: 1px;
+        flex-shrink: 0;
+      }
+      .racers-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: clamp(8px, 1vw, 14px);
+        min-height: 0;
+        overflow-y: auto;
+      }
+      .racer-row {
+        display: flex;
+        align-items: center;
+        background-color: rgba(0,0,0,0.5);
+        padding: clamp(12px, 1.2vw, 20px) clamp(16px, 1.8vw, 28px);
+        border-radius: 10px;
+        border: 2px solid rgba(255,255,255,0.3);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+        min-height: clamp(48px, 6vw, 72px);
+      }
+      .racer-row .lane-color {
+        width: clamp(40px, 5vw, 64px);
+        height: clamp(32px, 4vw, 48px);
+        border-radius: 8px;
+        margin-right: clamp(16px, 1.5vw, 30px);
+        border: 3px solid #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+        flex-shrink: 0;
+      }
+      .racer-row .racer-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .racer-row .racer-name {
+        font-size: clamp(1.1rem, 1.6vw, 1.9rem);
+        font-weight: 700;
+        color: #fff;
+        text-transform: uppercase;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        margin-bottom: 2px;
+        letter-spacing: 1px;
+        line-height: 1.2;
+      }
+      .racer-row .affiliation {
+        font-size: clamp(0.9rem, 1.2vw, 1.4rem);
+        color: #ccc;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+      .racer-row .laps-remaining {
+        font-size: clamp(1.2rem, 1.8vw, 2rem);
+        font-weight: 900;
+        color: #ff0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        min-width: clamp(50px, 6vw, 80px);
+        text-align: center;
+        background-color: rgba(0,0,0,0.4);
+        border-radius: 8px;
+        padding: 6px 10px;
+        border: 2px solid #ff0;
+        flex-shrink: 0;
+      }
+      .racer-row .finish-time {
+        font-size: clamp(1.2rem, 1.6vw, 1.9rem);
+        font-weight: 900;
+        color: #0f0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        text-align: right;
+        min-width: clamp(90px, 12vw, 140px);
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 2px solid #0f0;
+        flex-shrink: 0;
+        display: none;
+      }
+      .racers-container.racers-2 .racer-row { min-height: clamp(56px, 8vw, 100px); }
+      .racers-container.racers-3 .racer-row { min-height: clamp(52px, 7vw, 90px); }
+      .racers-container.racers-4 .racer-row { min-height: clamp(48px, 6vw, 80px); }
+      .racers-container.racers-5 .racer-row { min-height: clamp(44px, 5.5vw, 72px); }
+      .racers-container.racers-6 .racer-row { min-height: clamp(40px, 5vw, 65px); }
+      .racers-container.racers-7 .racer-row { min-height: clamp(38px, 4.5vw, 58px); }
+      .racers-container.racers-8 .racer-row { min-height: clamp(34px, 4vw, 52px); }
+      .racers-container.racers-9 .racer-row { min-height: clamp(30px, 3.5vw, 46px); }
+      .racers-container.racers-10 .racer-row { min-height: clamp(28px, 3vw, 42px); }
+      .racers-container.racers-9 { gap: clamp(6px, 0.8vw, 10px); }
+      .racers-container.racers-10 { gap: clamp(4px, 0.6vw, 8px); }
+      .racers-container.racers-9 .racer-row .racer-name { font-size: clamp(1rem, 1.4vw, 1.6rem); }
+      .racers-container.racers-9 .racer-row .affiliation { font-size: clamp(0.85rem, 1.1vw, 1.2rem); }
+      .racers-container.racers-10 .racer-row .racer-name { font-size: clamp(0.95rem, 1.3vw, 1.5rem); }
+      .racers-container.racers-10 .racer-row .affiliation { font-size: clamp(0.8rem, 1vw, 1.1rem); }
+    </style>
+  </head>
+  <body>
+    <div class="race-summary">
+      <div class="race-number-panel">
+        <div class="race-number" id="race-number">21A</div>
+      </div>
+      <div class="content-panel">
+        <div class="event-title" id="event-title">Event 21 - 500m Men</div>
+        <div class="racers-container racers-6" id="racers-container"></div>
+      </div>
+    </div>
+
+    <script>
+      // Placeholder lane colors (live WebLynx uses viewConfig.laneColors from race-data)
+      var LANE_COLORS = { 1: '#e74c3c', 2: '#3498db', 3: '#2ecc71', 4: '#f1c40f', 5: '#9b59b6', 6: '#1abc9c', 7: '#e67e22', 8: '#34495e', 9: '#e91e63', 10: '#00bcd4' };
+      var DEFAULT_LANE_COLOR = '#888';
+
+      var sampleRacers = [
+        { lane: 1, name: 'Racer McRacerFace', affiliation: 'Cambridge SSC', lapsRemaining: 4 },
+        { lane: 2, name: 'Speed Demon', affiliation: 'Toronto Speed Club', lapsRemaining: 3 },
+        { lane: 3, name: 'Lightning Bolt', affiliation: 'Vancouver Ice', lapsRemaining: 3 },
+        { lane: 4, name: 'Ice Queen', affiliation: 'Calgary Blades', lapsRemaining: 2 },
+        { lane: 5, name: 'Speed Skater Pro', affiliation: 'Edmonton Eagles', lapsRemaining: 1 },
+        { lane: 6, name: 'Demo Skater Six', affiliation: 'Ottawa Rapids', lapsRemaining: null, finalTime: '00:01:26.3400000' }
+      ];
+
+      function getLaneColor(lane) {
+        return LANE_COLORS[lane] || DEFAULT_LANE_COLOR;
+      }
+
+      function formatTime(ts) {
+        if (!ts) return '--:--.---';
+        var parts = ts.split(':');
+        if (parts.length !== 3) return ts;
+        var h = parseInt(parts[0], 10) || 0, m = parseInt(parts[1], 10) || 0;
+        var sParts = parts[2].split('.');
+        var s = parseInt(sParts[0], 10) || 0, ms = sParts[1] ? parseInt(sParts[1].substring(0, 3), 10) || 0 : 0;
+        var totalM = h * 60 + m;
+        return (totalM < 10 ? '0' : '') + totalM + ':' + (s < 10 ? '0' : '') + s + '.' + (ms < 10 ? '00' : ms < 100 ? '0' : '') + ms;
+      }
+
+      function createRacerRow(racer) {
+        var row = document.createElement('div');
+        row.className = 'racer-row';
+        // Only show final time, not split times (race_summary shows final results only)
+        var showTime = !!racer.finalTime;
+        var laps = racer.lapsRemaining != null ? racer.lapsRemaining + 1 : '-';
+        row.innerHTML =
+          '<div class="lane-color" style="background-color:' + getLaneColor(racer.lane) + '"></div>' +
+          '<div class="racer-info">' +
+            '<div class="racer-name">' + (racer.name || '-') + '</div>' +
+            '<div class="affiliation">' + (racer.affiliation || '-') + '</div>' +
+          '</div>' +
+          '<div class="laps-remaining" style="display:' + (showTime ? 'none' : 'block') + '">' + laps + '</div>' +
+          '<div class="finish-time" style="display:' + (showTime ? 'block' : 'none') + '">' + (showTime ? formatTime(racer.finalTime) : '') + '</div>';
+        return row;
+      }
+
+      var container = document.getElementById('racers-container');
+      container.className = 'racers-container racers-' + sampleRacers.length;
+      var sorted = sampleRacers.slice().sort(function(a, b) { return (a.lane || 0) - (b.lane || 0); });
+      sorted.forEach(function(r) { container.appendChild(createRacerRow(r)); });
+    </script>
+  </body>
+</html>

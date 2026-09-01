@@ -1,0 +1,7 @@
+properties:
+- key: num_races_to_cycle
+  type: integer
+  value: 10
+- key: cycle_interval_seconds
+  type: integer
+  value: 10

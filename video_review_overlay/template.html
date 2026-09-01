@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/views/video_review_overlay/styles.css">
+  </head>
+  <body>
+    <!-- Bottom left: race number and race name -->
+    <div class="race-info" id="race-info">
+      <div class="race-number" id="race-number">—</div>
+      <div class="race-name" id="race-name">No active race</div>
+    </div>
+
+    <!-- Bottom right: race clock and current timestamp -->
+    <div class="time-info" id="time-info">
+      <div class="race-clock" id="race-clock">00:00.0</div>
+      <div class="current-timestamp" id="current-timestamp">—</div>
+    </div>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+
+      function formatCurrentTime() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return hours + ':' + minutes + ':' + seconds;
+      }
+
+      function updateTimestamp() {
+        const el = document.getElementById('current-timestamp');
+        if (el) el.textContent = formatCurrentTime();
+      }
+
+      function updateRaceData() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            console.error('Error fetching race data:', error);
+            return;
+          }
+
+          const config = WebLynx.applyViewConfig(data);
+
+          const eventNumber = data.event?.eventNumber ?? '';
+          const eventName = data.event?.eventName ?? 'No active race';
+          document.getElementById('race-number').textContent = eventNumber || '—';
+          document.getElementById('race-name').textContent = eventName;
+
+          document.getElementById('race-clock').textContent = WebLynx.formatRaceTime(data.currentTime);
+        });
+      }
+
+      updateTimestamp();
+      setInterval(updateTimestamp, 1000);
+      WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL);
+    </script>
+  </body>
+</html>

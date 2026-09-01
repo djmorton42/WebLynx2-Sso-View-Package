@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/views/unofficial_results/styles.css">
+  </head>
+  <body>
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="meet-title" id="meet-title"></div>
+      <div class="event-subtitle" id="event-subtitle"></div>
+    </div>
+    
+    <div class="container">
+      <!-- Left Column: Latest Race -->
+      <div class="column" id="latest-column">
+        <div class="column-header">Latest Unofficial Results</div>
+        <div class="race-info" id="latest-race-info">Loading...</div>
+        <div class="event-name" id="latest-event-name"></div>
+        <div class="results-container" id="latest-results">
+          <div class="loading">Loading latest race results...</div>
+        </div>
+      </div>
+
+      <!-- Right Column: Cycling Through Recent Races -->
+      <div class="column" id="cycling-column">
+        <div class="column-header">Recent Unofficial Results</div>
+        <div class="race-info" id="cycling-race-info">Loading...</div>
+        <div class="event-name" id="cycling-event-name"></div>
+        <div class="results-container" id="cycling-results">
+          <div class="loading">Loading race results...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HTML5 Template for result rows -->
+    <template id="result-template">
+      <div class="result-row">
+        <div class="position"></div>
+        <div class="racer-info">
+          <div class="racer-name"></div>
+          <div class="affiliation"></div>
+        </div>
+        <div class="final-time"></div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      // Defaults when viewConfig fields are missing
+      let numRacesToCycle = 10;
+      let cycleIntervalSeconds = 10;
+      const UPDATE_INTERVAL = 5000; // Update unofficial results data every 5 seconds
+
+      let currentRaceIndex = 0;
+      let raceList = [];
+      let cyclingInterval = null;
+
+      function formatTime(timeString) {
+        if (!timeString) return '--:--.---';
+        
+        // Handle TimeSpan format or formatted time string
+        if (timeString.includes(':')) {
+          // Already formatted or TimeSpan format
+          const parts = timeString.split(':');
+          if (parts.length === 3) {
+            // TimeSpan format HH:mm:ss.fffffff
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            const secondsParts = parts[2].split('.');
+            const seconds = parseInt(secondsParts[0]) || 0;
+            const milliseconds = secondsParts[1] ? parseInt(secondsParts[1].substring(0, 3)) || 0 : 0;
+            
+            const totalMinutes = hours * 60 + minutes;
+            return `${totalMinutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+          } else if (parts.length === 2) {
+            // Already in mm:ss.fff format
+            return timeString;
+          }
+        }
+        
+        // Try to parse as seconds
+        const seconds = parseFloat(timeString);
+        if (!isNaN(seconds)) {
+          const mins = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          const ms = Math.floor((secs % 1) * 1000);
+          return `${mins.toString().padStart(2, '0')}:${Math.floor(secs).toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+        }
+        
+        return timeString;
+      }
+
+      function createResultRow(racer) {
+        const template = document.getElementById('result-template');
+        const clone = template.content.cloneNode(true);
+        
+        const positionElement = clone.querySelector('.position');
+        if (racer.position && racer.position.trim() !== '') {
+          positionElement.textContent = racer.position;
+        } else {
+          positionElement.textContent = `Lane ${racer.lineNumber || '-'}`;
+        }
+        
+        clone.querySelector('.racer-name').textContent = racer.name || '-';
+        clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
+        
+        const timeElement = clone.querySelector('.final-time');
+        if (racer.finishTime || racer.finishTimeFormatted) {
+          const timeToShow = racer.finishTime || racer.finishTimeFormatted;
+          timeElement.textContent = formatTime(timeToShow);
+          timeElement.style.display = 'block';
+        } else if (racer.isSpecialPosition) {
+          // For special positions like DNF, DNS, don't show time
+          timeElement.style.display = 'none';
+        } else {
+          timeElement.textContent = '--:--.---';
+          timeElement.style.display = 'block';
+        }
+        
+        return clone;
+      }
+
+      function updateLatestRace() {
+        fetch('/api/unofficial_results/latest')
+          .then(response => {
+            if (!response.ok) {
+              if (response.status === 404) {
+                document.getElementById('latest-race-info').textContent = 'No results available';
+                document.getElementById('latest-event-name').textContent = '';
+                document.getElementById('latest-results').innerHTML = '<div class="no-results">No unofficial results available</div>';
+                return;
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (!data) {
+              document.getElementById('latest-race-info').textContent = 'No results available';
+              document.getElementById('latest-event-name').textContent = '';
+              document.getElementById('latest-results').innerHTML = '<div class="no-results">No unofficial results available</div>';
+              return;
+            }
+
+            document.getElementById('latest-race-info').textContent = data.raceNumber || '';
+            document.getElementById('latest-event-name').textContent = data.eventName || '';
+
+            const resultsContainer = document.getElementById('latest-results');
+            resultsContainer.innerHTML = '';
+            
+            if (data.racers && data.racers.length > 0) {
+              // Sort racers by position (numeric positions first, then special positions)
+              const sortedRacers = [...data.racers].sort((a, b) => {
+                const aPos = a.position?.trim() || '';
+                const bPos = b.position?.trim() || '';
+                
+                // Try to parse as numbers
+                const aNum = parseInt(aPos);
+                const bNum = parseInt(bPos);
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                  return aNum - bNum;
+                }
+                if (!isNaN(aNum)) return -1;
+                if (!isNaN(bNum)) return 1;
+                
+                // Both are non-numeric, compare as strings
+                return aPos.localeCompare(bPos);
+              });
+
+              // Apply dynamic sizing
+              resultsContainer.className = 'results-container';
+              if (sortedRacers.length >= 2 && sortedRacers.length <= 10) {
+                resultsContainer.classList.add(`racers-${sortedRacers.length}`);
+              }
+
+              sortedRacers.forEach(racer => {
+                resultsContainer.appendChild(createResultRow(racer));
+              });
+            } else {
+              resultsContainer.innerHTML = '<div class="no-results">No racers in this race</div>';
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching latest race:', error);
+            document.getElementById('latest-race-info').textContent = 'Error loading results';
+            document.getElementById('latest-results').innerHTML = '<div class="no-results">Error loading results</div>';
+          });
+      }
+
+      function updateRaceList() {
+        fetch('/api/unofficial_results/info')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (!data || data.length === 0) {
+              raceList = [];
+              document.getElementById('cycling-race-info').textContent = 'No results available';
+              document.getElementById('cycling-event-name').textContent = '';
+              document.getElementById('cycling-results').innerHTML = '<div class="no-results">No unofficial results available</div>';
+              return;
+            }
+
+            // Take the first N races (excluding the latest, which is shown on the left)
+            // We'll skip index 0 since that's the latest
+            const racesToShow = data.slice(1, numRacesToCycle + 1);
+            raceList = racesToShow;
+            
+            if (raceList.length === 0) {
+              document.getElementById('cycling-race-info').textContent = 'No additional races';
+              document.getElementById('cycling-event-name').textContent = '';
+              document.getElementById('cycling-results').innerHTML = '<div class="no-results">No additional races to display</div>';
+              return;
+            }
+
+            // Reset index if it's out of bounds
+            if (currentRaceIndex >= raceList.length) {
+              currentRaceIndex = 0;
+            }
+
+            // Start cycling if not already started
+            if (cyclingInterval === null && raceList.length > 0) {
+              startCycling();
+            }
+
+            // Update to current race
+            updateCyclingRace();
+          })
+          .catch(error => {
+            console.error('Error fetching race list:', error);
+            document.getElementById('cycling-race-info').textContent = 'Error loading results';
+            document.getElementById('cycling-results').innerHTML = '<div class="no-results">Error loading results</div>';
+          });
+      }
+
+      function updateCyclingRace() {
+        if (raceList.length === 0) {
+          return;
+        }
+
+        const raceInfo = raceList[currentRaceIndex];
+        if (!raceInfo) {
+          return;
+        }
+
+        fetch(`/api/unofficial_results/race/${encodeURIComponent(raceInfo.raceNumber)}`)
+          .then(response => {
+            if (!response.ok) {
+              if (response.status === 404) {
+                document.getElementById('cycling-race-info').textContent = 'Race not found';
+                document.getElementById('cycling-event-name').textContent = '';
+                document.getElementById('cycling-results').innerHTML = '<div class="no-results">Race not found</div>';
+                return null;
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (!data) {
+              return;
+            }
+
+            document.getElementById('cycling-race-info').textContent = data.raceNumber || '';
+            document.getElementById('cycling-event-name').textContent = data.eventName || '';
+
+            const resultsContainer = document.getElementById('cycling-results');
+            resultsContainer.innerHTML = '';
+            
+            if (data.racers && data.racers.length > 0) {
+              // Sort racers by position
+              const sortedRacers = [...data.racers].sort((a, b) => {
+                const aPos = a.position?.trim() || '';
+                const bPos = b.position?.trim() || '';
+                
+                const aNum = parseInt(aPos);
+                const bNum = parseInt(bPos);
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                  return aNum - bNum;
+                }
+                if (!isNaN(aNum)) return -1;
+                if (!isNaN(bNum)) return 1;
+                
+                return aPos.localeCompare(bPos);
+              });
+
+              // Apply dynamic sizing
+              resultsContainer.className = 'results-container';
+              if (sortedRacers.length >= 2 && sortedRacers.length <= 10) {
+                resultsContainer.classList.add(`racers-${sortedRacers.length}`);
+              }
+
+              sortedRacers.forEach(racer => {
+                resultsContainer.appendChild(createResultRow(racer));
+              });
+            } else {
+              resultsContainer.innerHTML = '<div class="no-results">No racers in this race</div>';
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching cycling race:', error);
+            document.getElementById('cycling-race-info').textContent = 'Error loading results';
+            document.getElementById('cycling-results').innerHTML = '<div class="no-results">Error loading results</div>';
+          });
+      }
+
+      function startCycling() {
+        if (cyclingInterval !== null) {
+          clearInterval(cyclingInterval);
+        }
+
+        cyclingInterval = setInterval(() => {
+          if (raceList.length > 0) {
+            currentRaceIndex = (currentRaceIndex + 1) % raceList.length;
+            updateCyclingRace();
+          }
+        }, cycleIntervalSeconds * 1000);
+      }
+
+      // Poll race-data only for meet identity and cycling viewConfig
+      function refreshViewConfig() {
+        WebLynx.fetchRaceData()
+          .then(data => {
+            const config = WebLynx.applyViewConfig(data);
+            WebLynx.applyMeetIdentity(data);
+
+            numRacesToCycle = Number(config.num_races_to_cycle) || 10;
+            const nextCycleSeconds = Number(config.cycle_interval_seconds) || 10;
+            if (nextCycleSeconds !== cycleIntervalSeconds) {
+              cycleIntervalSeconds = nextCycleSeconds;
+              if (cyclingInterval !== null) {
+                startCycling();
+              }
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching race-data for viewConfig:', error);
+          });
+      }
+
+      // Initial load
+      refreshViewConfig();
+      updateLatestRace();
+      updateRaceList();
+
+      // Update latest race periodically
+      setInterval(() => {
+        updateLatestRace();
+      }, UPDATE_INTERVAL);
+
+      // Update race list periodically
+      setInterval(() => {
+        updateRaceList();
+      }, UPDATE_INTERVAL);
+
+      // Refresh meet title / cycling config periodically
+      setInterval(() => {
+        refreshViewConfig();
+      }, UPDATE_INTERVAL);
+    </script>
+  </body>
+</html>

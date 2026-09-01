@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Race Overlay</title>
+    <link rel="icon" type="image/png" href="/views/race_overlay/sso-logo.png">
+    <link rel="stylesheet" href="/views/race_overlay/styles.css">
+  </head>
+  <body class="preview-background">
+    <main class="broadcast-overlay" aria-label="Live race overlay">
+      <div class="sso-logo">
+        <img src="/views/race_overlay/sso-logo.png" alt="Speed Skating Ontario">
+      </div>
+
+      <div class="race-clock placard-panel" id="race-clock">00:00.0</div>
+
+      <aside class="race-stack" aria-label="Race information">
+        <div class="laps-to-go placard-panel" id="bell-lap-container">
+          <span class="bell-icon" id="bell-lap-icon" aria-hidden="true">&#128276;</span>
+          <span class="laps-to-go-text" id="bell-lap-text">Bell Lap</span>
+        </div>
+
+        <div class="event-name placard-panel placard-panel--accent" id="event-name">
+          Event Name
+        </div>
+
+        <div class="racer-stack" id="racer-stack"></div>
+      </aside>
+    </main>
+
+    <template id="racer-template">
+      <div class="racer-block placard-panel">
+        <div class="lane-color" aria-hidden="true"></div>
+        <div class="racer-info">
+          <div class="racer-name"></div>
+          <div class="affiliation"></div>
+        </div>
+        <div class="split-time"></div>
+        <div class="lap-count"></div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+      const SORT_BY = 'place';
+      const LAPS_TO_GO_MILESTONES = [25, 20, 15, 10, 5, 3, 1];
+
+      let lapsToGoShown = new Set();
+      let lapsToGoTimeout = null;
+      let maxLapsRemainingSeen = null;
+      let bellMs = 3000;
+
+      function createRacerBlock(racer, raceStatus, halfLapModeEnabled, config) {
+        const template = document.getElementById('racer-template');
+        const clone = template.content.cloneNode(true);
+
+        const laneColor = WebLynx.getLaneColor(config, racer.lane);
+        clone.querySelector('.lane-color').style.backgroundColor = laneColor;
+
+        clone.querySelector('.racer-name').textContent = racer.name || '-';
+        clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
+        clone.querySelector('.split-time').textContent = WebLynx.formatTime(racer.lastSplitTime);
+
+        const lapCountElement = clone.querySelector('.lap-count');
+        const isHalfLap = racer.delayedLapsRemaining !== null &&
+          racer.delayedLapsRemaining !== undefined &&
+          racer.delayedLapsRemaining % 1 === 0.5 &&
+          (raceStatus === 'NotStarted' || raceStatus === 0);
+
+        if (isHalfLap) {
+          lapCountElement.innerHTML = WebLynx.formatLapsDisplayHTML(
+            racer.delayedLapsRemaining,
+            raceStatus,
+            halfLapModeEnabled,
+            racer.hasFirstCrossing
+          );
+          lapCountElement.classList.add('half-lap');
+        } else {
+          lapCountElement.textContent = WebLynx.formatLapsDisplay(
+            racer.delayedLapsRemaining,
+            raceStatus,
+            halfLapModeEnabled,
+            racer.hasFirstCrossing
+          );
+        }
+
+        return clone;
+      }
+
+      function showLapsToGo(milestone) {
+        const container = document.getElementById('bell-lap-container');
+        const iconEl = document.getElementById('bell-lap-icon');
+        const textEl = document.getElementById('bell-lap-text');
+        if (!container || !textEl) return;
+
+        if (milestone === 1) {
+          textEl.textContent = 'Bell Lap';
+          if (iconEl) iconEl.hidden = false;
+        } else {
+          textEl.textContent = milestone + ' Laps to go';
+          if (iconEl) iconEl.hidden = true;
+        }
+
+        container.classList.add('show');
+        if (lapsToGoTimeout) clearTimeout(lapsToGoTimeout);
+        lapsToGoTimeout = setTimeout(() => {
+          container.classList.remove('show');
+        }, bellMs);
+      }
+
+      window.testLapsToGo = function(milestone) {
+        lapsToGoShown.clear();
+        showLapsToGo(milestone);
+      };
+      window.testBellLap = function() { window.testLapsToGo(1); };
+
+      function updateRaceData() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            console.error('Error fetching race data:', error);
+            return;
+          }
+
+          const config = WebLynx.applyViewConfig(data);
+          bellMs = (Number(config.bell_lap_duration_seconds) || 3) * 1000;
+
+          const isRaceRunning = WebLynx.isRaceRunning(data.status);
+
+          if (isRaceRunning) {
+            const activeRacers = WebLynx.getActiveRacers(data.racers);
+            let minLapsRemaining = null;
+            let maxLapsRemaining = null;
+
+            activeRacers.forEach((racer) => {
+              let realLapsRemaining = null;
+              if (racer.lapsRemaining !== undefined && racer.lapsRemaining !== null) {
+                realLapsRemaining = racer.lapsRemaining;
+              } else if (racer.realLapsRemaining !== undefined && racer.realLapsRemaining !== null) {
+                realLapsRemaining = racer.realLapsRemaining;
+              } else if (racer.actualLapsRemaining !== undefined && racer.actualLapsRemaining !== null) {
+                realLapsRemaining = racer.actualLapsRemaining;
+              } else if (racer.delayedLapsRemaining !== undefined && racer.delayedLapsRemaining !== null) {
+                realLapsRemaining = racer.delayedLapsRemaining;
+              }
+
+              if (realLapsRemaining !== null) {
+                if (minLapsRemaining === null || realLapsRemaining < minLapsRemaining) {
+                  minLapsRemaining = realLapsRemaining;
+                }
+                if (maxLapsRemaining === null || realLapsRemaining > maxLapsRemaining) {
+                  maxLapsRemaining = realLapsRemaining;
+                }
+              }
+            });
+
+            if (maxLapsRemaining !== null) {
+              maxLapsRemainingSeen = maxLapsRemainingSeen === null
+                ? maxLapsRemaining
+                : Math.max(maxLapsRemainingSeen, maxLapsRemaining);
+            }
+
+            if (minLapsRemaining !== null && maxLapsRemainingSeen !== null) {
+              for (const n of LAPS_TO_GO_MILESTONES) {
+                if (n > maxLapsRemainingSeen) continue;
+                if (minLapsRemaining <= n && !lapsToGoShown.has(n)) {
+                  lapsToGoShown.add(n);
+                  showLapsToGo(n);
+                  break;
+                }
+              }
+            }
+          }
+
+          const isRaceEnded = data.status === 'Finished' || data.status === 3;
+          const isRaceRearmed = WebLynx.isRaceArmed(data);
+
+          if (isRaceEnded || isRaceRearmed) {
+            lapsToGoShown.clear();
+            maxLapsRemainingSeen = null;
+            const bellLapContainer = document.getElementById('bell-lap-container');
+            if (bellLapContainer) {
+              bellLapContainer.classList.remove('show');
+            }
+            if (lapsToGoTimeout) {
+              clearTimeout(lapsToGoTimeout);
+              lapsToGoTimeout = null;
+            }
+          }
+
+          WebLynx.updateRaceClockDisplay(data);
+
+          const eventName = data.event?.eventName || 'Event Name';
+          const eventNumber = data.event?.eventNumber || '';
+          const displayName = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
+          document.getElementById('event-name').textContent = displayName;
+
+          const racerStack = document.getElementById('racer-stack');
+          racerStack.innerHTML = '';
+
+          const activeRacers = WebLynx.getActiveRacers(data.racers);
+          const halfLapModeEnabled = data.halfLapModeEnabled || false;
+          const racerCount = activeRacers.length;
+
+          racerStack.className = 'racer-stack';
+          if (racerCount >= 2 && racerCount <= 10) {
+            racerStack.classList.add(`racers-${racerCount}`);
+          }
+
+          activeRacers.forEach((racer) => {
+            racerStack.appendChild(
+              createRacerBlock(racer, data.status, halfLapModeEnabled, config)
+            );
+          });
+        }, SORT_BY);
+      }
+
+      WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL, SORT_BY);
+    </script>
+  </body>
+</html>

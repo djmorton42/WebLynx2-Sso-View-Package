@@ -1,0 +1,4 @@
+properties:
+- key: disable_lap_board
+  type: boolean
+  value: false

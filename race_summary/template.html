@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="icon" type="image/png" href="/views/race_summary/sso-logo.png">
+    <link rel="stylesheet" href="/views/race_summary/styles.css">
+  </head>
+  <body>
+    <div class="race-summary">
+      <div class="race-number-panel">
+        <div class="race-number" id="race-number">-</div>
+      </div>
+      <div class="content-panel">
+        <div class="event-title" id="event-title">No active race</div>
+        <div class="racers-container" id="racers-container">
+          <!-- Racers populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <template id="racer-template">
+      <div class="racer-row">
+        <div class="lane-color"></div>
+        <div class="racer-info">
+          <div class="racer-name"></div>
+          <div class="affiliation"></div>
+        </div>
+        <div class="laps-remaining"></div>
+        <div class="finish-time"></div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+
+      // Test mode: set to true to show demo data when no WebLynx/FinishLynx data
+      const TEST_MODE = false;
+      const DEMO_RACE_NUMBER = '21A';
+      const DEMO_EVENT_TITLE = 'Event 21 - 500m Men';
+      const DEMO_RACERS = [
+        { lane: 1, name: 'Demo Skater One', affiliation: 'Club A', lapsRemaining: 3, finalTime: null },
+        { lane: 2, name: 'Demo Skater Two', affiliation: 'Club B', lapsRemaining: 2, finalTime: null },
+        { lane: 3, name: 'Demo Skater Three', affiliation: 'Club A', lapsRemaining: 2, finalTime: null },
+        { lane: 4, name: 'Demo Skater Four', affiliation: 'Club C', lapsRemaining: 1, finalTime: '00:01:28.4500000' },
+      ];
+
+      function getCurrentLapsRemaining(racer) {
+        if (racer.lapsRemaining !== undefined && racer.lapsRemaining !== null) return racer.lapsRemaining;
+        if (racer.realLapsRemaining !== undefined && racer.realLapsRemaining !== null) return racer.realLapsRemaining;
+        if (racer.actualLapsRemaining !== undefined && racer.actualLapsRemaining !== null) return racer.actualLapsRemaining;
+        return null;
+      }
+
+      function createRacerRow(racer, data, config) {
+        const template = document.getElementById('racer-template');
+        const clone = template.content.cloneNode(true);
+        clone.querySelector('.lane-color').style.backgroundColor = WebLynx.getLaneColor(config, racer.lane);
+        clone.querySelector('.racer-name').textContent = racer.name || '-';
+        clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
+
+        const raceStatus = data ? data.status : null;
+        const halfLapModeEnabled = data ? (data.halfLapModeEnabled || false) : false;
+        const currentLaps = getCurrentLapsRemaining(racer);
+        const hasPlaceData = racer.hasPlaceData && racer.placeText;
+        const hasAlphaCode = hasPlaceData && typeof WebLynx !== 'undefined' && WebLynx.isAlphaCode && WebLynx.isAlphaCode(racer.placeText);
+        const isRaceFinished = raceStatus === 'Finished' || raceStatus === 3;
+        // Only show final finish time, not intermediate split times (cumulativeSplitTime)
+        const hasFinalTime = racer.finalTime;
+        const showFinishTime = (hasPlaceData && !hasAlphaCode && hasFinalTime) || (isRaceFinished && hasFinalTime && !hasAlphaCode) || (!data && hasFinalTime);
+
+        const lapsEl = clone.querySelector('.laps-remaining');
+        const timeEl = clone.querySelector('.finish-time');
+
+        if (showFinishTime || (isRaceFinished && hasFinalTime && !hasAlphaCode)) {
+          const timeToShow = racer.finalTime;
+          timeEl.textContent = typeof WebLynx !== 'undefined' && WebLynx.formatTime ? WebLynx.formatTime(timeToShow) : timeToShow;
+          timeEl.style.display = 'block';
+          lapsEl.style.display = 'none';
+        } else {
+          // Display laps as "laps remaining": add 1 to API value only after race has started and only for whole-lap races (not e.g. 13.5)
+          const raceNotStarted = raceStatus === 'NotStarted' || raceStatus === 0;
+          const isWholeLaps = currentLaps !== null && currentLaps !== undefined && currentLaps % 1 === 0;
+          const displayLaps = (currentLaps !== null && currentLaps !== undefined)
+            ? (raceNotStarted || !isWholeLaps ? currentLaps : currentLaps + 1)
+            : currentLaps;
+          if (displayLaps !== null && displayLaps !== undefined && typeof WebLynx !== 'undefined' && WebLynx.formatLapsDisplay) {
+            const isHalfLap = displayLaps % 1 === 0.5 && (raceStatus === 'NotStarted' || raceStatus === 0);
+            if (isHalfLap && WebLynx.formatLapsDisplayHTML) {
+              lapsEl.innerHTML = WebLynx.formatLapsDisplayHTML(displayLaps, raceStatus, halfLapModeEnabled, racer.hasFirstCrossing);
+              lapsEl.classList.add('half-lap');
+            } else {
+              lapsEl.textContent = WebLynx.formatLapsDisplay(displayLaps, raceStatus, halfLapModeEnabled, racer.hasFirstCrossing);
+              lapsEl.classList.remove('half-lap');
+            }
+          } else {
+            lapsEl.textContent = displayLaps != null ? displayLaps : '-';
+            lapsEl.classList.remove('half-lap');
+          }
+          lapsEl.style.display = 'block';
+          timeEl.style.display = 'none';
+        }
+        return clone;
+      }
+
+      function render(raceNumber, eventTitle, racers, data, config) {
+        document.getElementById('race-number').textContent = raceNumber || '-';
+        document.getElementById('event-title').textContent = eventTitle || 'No active race';
+
+        const container = document.getElementById('racers-container');
+        container.innerHTML = '';
+        container.className = 'racers-container';
+        if (racers.length >= 2 && racers.length <= 10) {
+          container.classList.add('racers-' + racers.length);
+        }
+        racers.forEach(function (racer) {
+          container.appendChild(createRacerRow(racer, data, config || {}));
+        });
+      }
+
+      function updateFromWebLynx() {
+        if (typeof WebLynx === 'undefined' || !WebLynx.updateRaceData) {
+          if (TEST_MODE) {
+            render(DEMO_RACE_NUMBER, DEMO_EVENT_TITLE, DEMO_RACERS, null, {});
+          }
+          return;
+        }
+        WebLynx.updateRaceData(function (data, error) {
+          if (error) {
+            if (TEST_MODE) {
+              render(DEMO_RACE_NUMBER, DEMO_EVENT_TITLE, DEMO_RACERS, null, {});
+            }
+            return;
+          }
+          const config = WebLynx.applyViewConfig(data);
+          var racers = (data.racers && WebLynx.getActiveRacers(data.racers)) || [];
+          racers.sort(function (a, b) { return (a.lane || 0) - (b.lane || 0); });
+          if (TEST_MODE && racers.length === 0) {
+            render(DEMO_RACE_NUMBER, DEMO_EVENT_TITLE, DEMO_RACERS, null, config);
+            return;
+          }
+          var raceNumber = (data.raceNumber != null && data.raceNumber !== '')
+            ? data.raceNumber
+            : (data.event && data.event.eventNumber != null && data.event.eventNumber !== '')
+              ? data.event.eventNumber
+              : '';
+          var eventName = (data.event && data.event.eventName) ? data.event.eventName : 'Race Event';
+          var eventNumber = (data.event && data.event.eventNumber) ? data.event.eventNumber : '';
+          var eventTitle = eventNumber ? eventNumber + ' - ' + eventName : eventName;
+          render(raceNumber || eventNumber, eventTitle, racers, data, config);
+        }, 'lane');
+      }
+
+      if (typeof WebLynx !== 'undefined' && WebLynx.startAutoUpdate) {
+        WebLynx.startAutoUpdate(updateFromWebLynx, UPDATE_INTERVAL, 'lane');
+      } else {
+        updateFromWebLynx();
+      }
+    </script>
+  </body>
+</html>

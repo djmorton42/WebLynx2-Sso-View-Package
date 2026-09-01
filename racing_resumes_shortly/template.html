@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Racing Resumes Shortly</title>
+    <link rel="icon" type="image/png" href="/views/racing_resumes_shortly/sso-logo.png">
+    <link rel="stylesheet" href="/views/racing_resumes_shortly/styles.css">
+  </head>
+  <body class="preview-background">
+    <main class="broadcast-overlay" aria-label="Racing resumes shortly overlay">
+      <header class="event-header">
+        <div class="event-copy">
+          <h1 id="meet-title"></h1>
+          <p id="event-subtitle"></p>
+        </div>
+
+        <div class="speed-line" aria-hidden="true"></div>
+
+        <img
+          class="sso-logo"
+          src="/views/racing_resumes_shortly/sso-logo.png"
+          alt="Speed Skating Ontario"
+        />
+      </header>
+
+      <section class="announcement" aria-live="polite">
+        <span class="announcement-label">Live update</span>
+        <div class="announcement-panel">
+          <p class="announcement-message">Racing will resume shortly...</p>
+        </div>
+      </section>
+
+      <footer class="partner-bar">
+        <p class="partner-heading">Thank you to<br />our partners</p>
+
+        <div class="partner-divider" aria-hidden="true"></div>
+
+        <ul class="partner-list" aria-label="Event partners">
+          <li>
+            <img
+              class="partner-logo partner-logo--cao"
+              src="/views/racing_resumes_shortly/sponsors/cao-white.svg"
+              alt="Coaches Association of Ontario"
+            />
+          </li>
+          <li>
+            <img
+              class="partner-logo partner-logo--csi"
+              src="/views/racing_resumes_shortly/sponsors/csi-white.svg"
+              alt="Canadian Sport Institute Ontario"
+            />
+          </li>
+          <li>
+            <img
+              class="partner-logo partner-logo--nagano"
+              src="/views/racing_resumes_shortly/sponsors/nagano-white.png"
+              alt="Nagano"
+            />
+          </li>
+          <li>
+            <img
+              class="partner-logo partner-logo--ontario"
+              src="/views/racing_resumes_shortly/sponsors/ontario-white.svg"
+              alt="Government of Ontario"
+            />
+          </li>
+        </ul>
+      </footer>
+    </main>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      function updateMeetIdentity() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            console.error('Error fetching race data:', error);
+            return;
+          }
+          WebLynx.applyMeetIdentity(data);
+        });
+      }
+
+      WebLynx.startAutoUpdate(updateMeetIdentity);
+    </script>
+  </body>
+</html>

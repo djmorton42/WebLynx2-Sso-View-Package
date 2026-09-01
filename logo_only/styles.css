@@ -1,0 +1,48 @@
+/* CSS Reset for consistent rendering across browsers */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: transparent; /* Transparent for overlay */
+  color: #000;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Logo in top-right corner */
+.sso-logo {
+  position: fixed;
+  top: 30px;
+  right: 50px;
+  z-index: 1000;
+  opacity: 0.6;
+}
+
+.sso-logo img {
+  max-height: 120px;
+  width: auto;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 1920px) {
+  body {
+    width: 100vw;
+    height: 100vh;
+  }
+}
+
+/* Ensure proper scaling for broadcast equipment */
+body {
+  transform-origin: top left;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}

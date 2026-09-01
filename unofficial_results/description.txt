@@ -1,0 +1,2 @@
+Unofficial results display with latest race on the left and cycling through recent races on the right. Designed for 1920x1080 display.
+

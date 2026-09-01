@@ -1,0 +1,1 @@
+Simplified race overlay — race clock and affiliations only (no names, splits, or lap counts)

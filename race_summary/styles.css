@@ -1,0 +1,215 @@
+/* Race Summary view - landscape-oriented, responsive */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #000000;
+  color: white;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Landscape-oriented container: left half = race number, right half = event + racers */
+.race-summary {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.35) 15%,
+    rgba(0, 0, 0, 0.45) 35%,
+    rgba(0, 0, 0, 0.5) 100%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  padding: 2vw;
+  box-sizing: border-box;
+  transform-origin: top left;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Left half: race number */
+.race-number-panel {
+  flex: 0 0 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2vw;
+}
+
+.race-number {
+  font-size: clamp(4rem, 18vw, 22rem);
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 4px 4px 12px rgba(0, 0, 0, 0.9);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* Right half: event title + racer list */
+.content-panel {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  padding: 2vw;
+  min-width: 0;
+}
+
+/* Event title - similar to broadcast_results race-details-bar */
+.event-title {
+  background-color: #00cc00;
+  color: #000000;
+  padding: clamp(12px, 1.5vw, 24px) clamp(20px, 2.5vw, 40px);
+  border-radius: 10px;
+  font-size: clamp(1.4rem, 2.2vw, 2.4rem);
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: clamp(12px, 1.5vw, 24px);
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  border: 3px solid #ffffff;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+/* Racer list container */
+.racers-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1vw, 14px);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Racer row - same visual style as broadcast_results .result-row (no position/time) */
+.racer-row {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: clamp(12px, 1.2vw, 20px) clamp(16px, 1.8vw, 28px);
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  min-height: clamp(48px, 6vw, 72px);
+}
+
+.racer-row .lane-color {
+  width: clamp(40px, 5vw, 64px);
+  height: clamp(32px, 4vw, 48px);
+  border-radius: 8px;
+  margin-right: clamp(16px, 1.5vw, 30px);
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.racer-row .racer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-right: 16px;
+  min-width: 0;
+}
+
+.racer-row .racer-name {
+  font-size: clamp(1.1rem, 1.6vw, 1.9rem);
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.racer-row .affiliation {
+  font-size: clamp(0.9rem, 1.2vw, 1.4rem);
+  color: #cccccc;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Laps remaining (current, not delayed) - right side during race */
+.racer-row .laps-remaining {
+  font-size: clamp(1.2rem, 1.8vw, 2rem);
+  font-weight: 900;
+  color: #ffff00;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+  min-width: clamp(50px, 6vw, 80px);
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  padding: 6px 10px;
+  border: 2px solid #ffff00;
+  flex-shrink: 0;
+}
+
+.racer-row .laps-remaining.half-lap .half-lap-fraction {
+  font-size: 0.75em;
+  vertical-align: baseline;
+  margin-left: 0.1em;
+}
+
+/* Finish time - shown when results are in */
+.racer-row .finish-time {
+  font-size: clamp(1.2rem, 1.6vw, 1.9rem);
+  font-weight: 900;
+  color: #00ff00;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+  text-align: right;
+  min-width: clamp(90px, 12vw, 140px);
+  letter-spacing: 1px;
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #00ff00;
+  flex-shrink: 0;
+  display: none;
+}
+
+/* Dynamic row sizing for 2–10 racers */
+.racers-container.racers-2 .racer-row { min-height: clamp(56px, 8vw, 100px); }
+.racers-container.racers-3 .racer-row { min-height: clamp(52px, 7vw, 90px); }
+.racers-container.racers-4 .racer-row { min-height: clamp(48px, 6vw, 80px); }
+.racers-container.racers-5 .racer-row { min-height: clamp(44px, 5.5vw, 72px); }
+.racers-container.racers-6 .racer-row { min-height: clamp(40px, 5vw, 65px); }
+.racers-container.racers-7 .racer-row { min-height: clamp(38px, 4.5vw, 58px); }
+.racers-container.racers-8 .racer-row { min-height: clamp(34px, 4vw, 52px); }
+.racers-container.racers-9 .racer-row { min-height: clamp(30px, 3.5vw, 46px); }
+.racers-container.racers-10 .racer-row { min-height: clamp(28px, 3vw, 42px); }
+
+.racers-container.racers-9 { gap: clamp(6px, 0.8vw, 10px); }
+.racers-container.racers-10 { gap: clamp(4px, 0.6vw, 8px); }
+
+.racers-container.racers-9 .racer-row .racer-name { font-size: clamp(1rem, 1.4vw, 1.6rem); }
+.racers-container.racers-9 .racer-row .affiliation { font-size: clamp(0.85rem, 1.1vw, 1.2rem); }
+.racers-container.racers-10 .racer-row .racer-name { font-size: clamp(0.95rem, 1.3vw, 1.5rem); }
+.racers-container.racers-10 .racer-row .affiliation { font-size: clamp(0.8rem, 1vw, 1.1rem); }
+
+/* Encourage landscape: optional hint (e.g. min-aspect-ratio) */
+@media (max-aspect-ratio: 3/4) {
+  .race-number {
+    font-size: clamp(3rem, 14vw, 12rem);
+  }
+}
+
+@media (prefers-contrast: high) {
+  .racer-row {
+    border: 3px solid #ffffff;
+  }
+}

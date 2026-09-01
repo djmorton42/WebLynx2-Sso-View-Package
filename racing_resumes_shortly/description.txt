@@ -1,0 +1,1 @@
+Racing resumes shortly overlay — fixed “Racing will resume shortly…” message

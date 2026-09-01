@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Start List &amp; Results</title>
+    <link rel="icon" type="image/png" href="/views/startlist_and_results/sso-logo.png">
+    <link rel="stylesheet" href="/views/startlist_and_results/styles.css">
+  </head>
+  <body class="preview-background">
+    <main class="broadcast-overlay" aria-label="Start list and results overlay">
+      <header class="event-header">
+        <div class="event-copy">
+          <h1 id="meet-title"></h1>
+          <p id="event-subtitle"></p>
+        </div>
+
+        <div class="speed-line" aria-hidden="true"></div>
+
+        <img
+          class="sso-logo"
+          src="/views/startlist_and_results/sso-logo.png"
+          alt="Speed Skating Ontario"
+        />
+      </header>
+
+      <section class="race-details" aria-live="polite">
+        <span class="status-badge unofficial-indicator" hidden>Startlist</span>
+        <div class="race-details-panel">
+          <p class="race-details-text" id="race-details-bar">No active race</p>
+        </div>
+      </section>
+
+      <section class="results-section" aria-label="Skaters">
+        <div class="results-container" id="results-container"></div>
+      </section>
+    </main>
+
+    <template id="result-template">
+      <div class="result-row">
+        <div class="position"></div>
+        <div class="lane-color" aria-hidden="true"></div>
+        <div class="racer-info">
+          <div class="racer-name"></div>
+          <div class="affiliation"></div>
+        </div>
+        <div class="final-time"></div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+
+      const DEMO_RESULTS_VIEW = false;
+      const DEMO_RACERS = [
+        { lane: 1, name: 'Demo Skater One', affiliation: 'Club A', hasPlaceData: true, placeText: '1', finalTime: '00:01:25.3400000', cumulativeSplitTime: '00:01:25.3400000' },
+        { lane: 2, name: 'Demo Skater Two', affiliation: 'Club B', hasPlaceData: true, placeText: '2', finalTime: '00:01:26.1200000', cumulativeSplitTime: '00:01:26.1200000' },
+        { lane: 3, name: 'Demo Skater Three', affiliation: 'Club A', hasPlaceData: true, placeText: '3', finalTime: '00:01:27.8900000', cumulativeSplitTime: '00:01:27.8900000' },
+        { lane: 4, name: 'Demo Skater Four', affiliation: 'Club C', hasPlaceData: true, placeText: '4', finalTime: '00:01:28.4500000', cumulativeSplitTime: '00:01:28.4500000' },
+      ];
+
+      function getLaneBracketStroke(color) {
+        const hex = String(color || '').trim().replace(/^#/, '');
+        if (!/^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(hex)) {
+          return 'rgba(255, 255, 255, 0.44)';
+        }
+
+        const normalized = hex.length === 3
+          ? hex.split('').map((ch) => ch + ch).join('')
+          : hex;
+        const r = parseInt(normalized.slice(0, 2), 16);
+        const g = parseInt(normalized.slice(2, 4), 16);
+        const b = parseInt(normalized.slice(4, 6), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+        return luminance > 0.62
+          ? 'rgba(0, 0, 0, 0.55)'
+          : 'rgba(255, 255, 255, 0.44)';
+      }
+
+      function createResultRow(racer, hasPlaces, config) {
+        const template = document.getElementById('result-template');
+        const clone = template.content.cloneNode(true);
+        const resultRow = clone.querySelector('.result-row');
+
+        const positionElement = clone.querySelector('.position');
+        if (racer.hasPlaceData) {
+          positionElement.textContent = racer.placeText;
+        } else {
+          positionElement.textContent = `Lane ${racer.lane}`;
+        }
+
+        clone.querySelector('.racer-name').textContent = racer.name || '-';
+        clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
+
+        const laneColor = WebLynx.getLaneColor(config, racer.lane);
+        clone.querySelector('.lane-color').style.backgroundColor = laneColor;
+        resultRow.style.setProperty('--lane-color', laneColor);
+        resultRow.style.setProperty('--lane-bracket-stroke', getLaneBracketStroke(laneColor));
+
+        const timeElement = clone.querySelector('.final-time');
+        const hasAlphaCode = racer.hasPlaceData && WebLynx.isAlphaCode(racer.placeText);
+
+        if (hasPlaces && !hasAlphaCode) {
+          const timeToShow = racer.finalTime || racer.cumulativeSplitTime;
+          timeElement.textContent = WebLynx.formatTime(timeToShow);
+          timeElement.hidden = false;
+        } else {
+          timeElement.hidden = true;
+        }
+
+        return clone;
+      }
+
+      function updateResultsData() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            console.error('Error fetching race data:', error);
+            return;
+          }
+
+          const config = WebLynx.applyViewConfig(data);
+          WebLynx.applyMeetIdentity(data);
+
+          const unofficialIndicator = document.querySelector('.unofficial-indicator');
+
+          const allRacers = data.racers ? WebLynx.getActiveRacers(data.racers) : [];
+          let sortedRacers = allRacers;
+
+          if (DEMO_RESULTS_VIEW && sortedRacers.length === 0) {
+            sortedRacers = DEMO_RACERS;
+            document.getElementById('race-details-bar').textContent = 'Demo - Results Preview';
+          } else if (data.event) {
+            const eventName = data.event.eventName || 'Race Event';
+            const eventNumber = data.event.eventNumber || '';
+            const raceDetails = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
+            document.getElementById('race-details-bar').textContent = raceDetails;
+          }
+
+          const resultsContainer = document.getElementById('results-container');
+          resultsContainer.innerHTML = '';
+
+          const racerCount = sortedRacers.length;
+          resultsContainer.className = 'results-container';
+          if (racerCount >= 1 && racerCount <= 10) {
+            resultsContainer.classList.add(`racers-${racerCount}`);
+          }
+          resultsContainer.style.setProperty('--racer-count', String(Math.max(racerCount, 1)));
+
+          const hasPlaces = sortedRacers.some((racer) => racer.hasPlaceData);
+
+          if (unofficialIndicator) {
+            if (DEMO_RESULTS_VIEW || hasPlaces) {
+              unofficialIndicator.textContent =
+                config.unofficialResultsText || 'Unofficial Results';
+              unofficialIndicator.hidden = false;
+            } else if (sortedRacers.length > 0) {
+              unofficialIndicator.textContent = 'Startlist';
+              unofficialIndicator.hidden = false;
+            } else {
+              unofficialIndicator.hidden = true;
+            }
+          }
+
+          sortedRacers.forEach((racer) => {
+            resultsContainer.appendChild(createResultRow(racer, hasPlaces, config));
+          });
+        }, 'place');
+      }
+
+      WebLynx.startAutoUpdate(updateResultsData, UPDATE_INTERVAL, 'place');
+    </script>
+  </body>
+</html>
