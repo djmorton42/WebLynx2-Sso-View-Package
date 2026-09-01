@@ -91,7 +91,7 @@ properties:
   value: '#ffffff'
 - key: updateInterval
   type: integer
-  value: 100
+  value: 50
 - key: defaultLaneColor
   type: color
   value: '#333333'

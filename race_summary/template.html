@@ -51,12 +51,11 @@
         return null;
       }
 
-      function createRacerRow(racer, data, config) {
-        const template = document.getElementById('racer-template');
-        const clone = template.content.cloneNode(true);
-        clone.querySelector('.lane-color').style.backgroundColor = WebLynx.getLaneColor(config, racer.lane);
-        clone.querySelector('.racer-name').textContent = racer.name || '-';
-        clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
+      function updateRacerRow(row, racer, context) {
+        const { data, config } = context;
+        row.querySelector('.lane-color').style.backgroundColor = WebLynx.getLaneColor(config, racer.lane);
+        row.querySelector('.racer-name').textContent = racer.name || '-';
+        row.querySelector('.affiliation').textContent = racer.affiliation || '-';
 
         const raceStatus = data ? data.status : null;
         const halfLapModeEnabled = data ? (data.halfLapModeEnabled || false) : false;
@@ -64,12 +63,11 @@
         const hasPlaceData = racer.hasPlaceData && racer.placeText;
         const hasAlphaCode = hasPlaceData && typeof WebLynx !== 'undefined' && WebLynx.isAlphaCode && WebLynx.isAlphaCode(racer.placeText);
         const isRaceFinished = raceStatus === 'Finished' || raceStatus === 3;
-        // Only show final finish time, not intermediate split times (cumulativeSplitTime)
         const hasFinalTime = racer.finalTime;
         const showFinishTime = (hasPlaceData && !hasAlphaCode && hasFinalTime) || (isRaceFinished && hasFinalTime && !hasAlphaCode) || (!data && hasFinalTime);
 
-        const lapsEl = clone.querySelector('.laps-remaining');
-        const timeEl = clone.querySelector('.finish-time');
+        const lapsEl = row.querySelector('.laps-remaining');
+        const timeEl = row.querySelector('.finish-time');
 
         if (showFinishTime || (isRaceFinished && hasFinalTime && !hasAlphaCode)) {
           const timeToShow = racer.finalTime;
@@ -77,7 +75,6 @@
           timeEl.style.display = 'block';
           lapsEl.style.display = 'none';
         } else {
-          // Display laps as "laps remaining": add 1 to API value only after race has started and only for whole-lap races (not e.g. 13.5)
           const raceNotStarted = raceStatus === 'NotStarted' || raceStatus === 0;
           const isWholeLaps = currentLaps !== null && currentLaps !== undefined && currentLaps % 1 === 0;
           const displayLaps = (currentLaps !== null && currentLaps !== undefined)
@@ -99,12 +96,20 @@
           lapsEl.style.display = 'block';
           timeEl.style.display = 'none';
         }
-        return clone;
       }
 
       function render(raceNumber, eventTitle, racers, data, config) {
         document.getElementById('race-number').textContent = raceNumber || '-';
         document.getElementById('event-title').textContent = eventTitle || 'No active race';
+
+        if (typeof WebLynx !== 'undefined' && WebLynx.syncRacerStack) {
+          WebLynx.syncRacerStack(document.getElementById('racers-container'), racers, {
+            baseClassName: 'racers-container',
+            updateRow: updateRacerRow,
+            context: { data, config: config || {} }
+          });
+          return;
+        }
 
         const container = document.getElementById('racers-container');
         container.innerHTML = '';
@@ -113,7 +118,9 @@
           container.classList.add('racers-' + racers.length);
         }
         racers.forEach(function (racer) {
-          container.appendChild(createRacerRow(racer, data, config || {}));
+          const template = document.getElementById('racer-template');
+          container.appendChild(template.content.cloneNode(true));
+          updateRacerRow(container.lastElementChild, racer, { data, config: config || {} });
         });
       }
 

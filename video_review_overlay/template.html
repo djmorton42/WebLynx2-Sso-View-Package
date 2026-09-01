@@ -47,7 +47,7 @@
           document.getElementById('race-number').textContent = eventNumber || '—';
           document.getElementById('race-name').textContent = eventName;
 
-          document.getElementById('race-clock').textContent = WebLynx.formatRaceTime(data.currentTime);
+          WebLynx.syncRaceClockFromServer(data, 'race-clock', { manageVisibility: false });
         });
       }
 

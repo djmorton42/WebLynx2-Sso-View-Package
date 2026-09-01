@@ -39,11 +39,6 @@ body {
   text-rendering: geometricPrecision;
 }
 
-/* TEMPORARY: remove `preview-background` from <body> before broadcast use. */
-body.preview-background {
-  background: #0b0e12 url("background.png") center / cover no-repeat;
-}
-
 .broadcast-overlay {
   position: relative;
   width: 100%;
@@ -116,6 +111,8 @@ body.preview-background {
   opacity: 0;
   visibility: hidden;
   transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+  /* Isolate digit repaints from the rest of the overlay layer. */
+  contain: layout style paint;
 }
 
 .race-clock.visible {
