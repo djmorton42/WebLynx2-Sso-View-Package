@@ -28,7 +28,7 @@
     
     <script src="/views/shared/weblynx-helpers.js"></script>
     <script>
-      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+      const LAP_COUNTER_REFRESH_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
       
       function createLapCounterCard(racer, raceStatus, halfLapModeEnabled, config) {
         const template = document.getElementById('lap-counter-template');
@@ -184,7 +184,7 @@
       }
       
       // Start updating
-      WebLynx.startAutoUpdate(updateLapCounterData, UPDATE_INTERVAL, 'lane');
+      WebLynx.startAutoUpdate(updateLapCounterData, LAP_COUNTER_REFRESH_INTERVAL, 'lane', 'lap_counter_refresh_interval');
     </script>
   </body>
 </html>

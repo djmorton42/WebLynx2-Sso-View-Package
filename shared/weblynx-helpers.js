@@ -26,7 +26,7 @@ WebLynx.DEFAULT_UPDATE_INTERVAL_MS = 250;
 
 /**
  * Remember and return nested viewConfig from a race-data payload.
- * When updateInterval is present, reschedules any active startAutoUpdate timer.
+ * When the active startAutoUpdate interval config key is present, reschedules the timer.
  * @param {object|null} data
  * @returns {object}
  */
@@ -52,16 +52,20 @@ WebLynx.getViewConfig = function(data) {
   return WebLynx._viewConfig || {};
 };
 
-WebLynx.getUpdateIntervalMs = function(config, fallback) {
+WebLynx.getConfigIntervalMs = function(config, key, fallback) {
   const cfg = config || WebLynx._viewConfig || {};
-  let value = Number(cfg.updateInterval);
+  let value = Number(cfg[key]);
   if (!Number.isFinite(value) || value <= 0) {
-    value = Number((WebLynx._keyValues || {}).updateInterval);
+    value = Number((WebLynx._keyValues || {})[key]);
   }
   if (Number.isFinite(value) && value > 0) {
     return value;
   }
   return fallback != null ? fallback : WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+};
+
+WebLynx.getUpdateIntervalMs = function(config, fallback) {
+  return WebLynx.getConfigIntervalMs(config, 'updateInterval', fallback);
 };
 
 WebLynx.getLaneColor = function(config, lane) {
@@ -613,8 +617,8 @@ WebLynx.syncRacerStack = function(container, items, options) {
 /**
  * Poll by invoking updateFunction on an interval.
  * Starts with the bootstrap interval (default 250ms). After the first successful
- * race-data response, switches to data.viewConfig.updateInterval from view.properties
- * when that value is present and positive.
+ * race-data response, switches to the configured viewConfig interval key from view.properties
+ * when that value is present and positive (default key: updateInterval).
  *
  * The next tick is scheduled only after the previous fetch and view callback finish,
  * so fast intervals do not stack overlapping requests (which caused stutter at 100ms).
@@ -622,7 +626,12 @@ WebLynx.syncRacerStack = function(container, items, options) {
  * Existing views typically define updateFunction as a zero-arg wrapper that calls
  * WebLynx.updateRaceData(...).
  */
-WebLynx.startAutoUpdate = function(updateFunction, interval = WebLynx.DEFAULT_UPDATE_INTERVAL_MS, sortBy = 'place') {
+WebLynx.startAutoUpdate = function(
+  updateFunction,
+  interval = WebLynx.DEFAULT_UPDATE_INTERVAL_MS,
+  sortBy = 'place',
+  intervalConfigKey = 'updateInterval'
+) {
   if (WebLynx._autoUpdate && WebLynx._autoUpdate.timerId != null) {
     clearTimeout(WebLynx._autoUpdate.timerId);
   }
@@ -630,11 +639,12 @@ WebLynx.startAutoUpdate = function(updateFunction, interval = WebLynx.DEFAULT_UP
   const state = {
     updateFunction: updateFunction,
     intervalMs: interval || WebLynx.DEFAULT_UPDATE_INTERVAL_MS,
+    intervalConfigKey: intervalConfigKey,
     timerId: null
   };
 
   const scheduleNext = function() {
-    state.intervalMs = WebLynx.getUpdateIntervalMs(WebLynx._viewConfig, state.intervalMs);
+    state.intervalMs = WebLynx.getConfigIntervalMs(WebLynx._viewConfig, state.intervalConfigKey, state.intervalMs);
     state.timerId = setTimeout(function() {
       state.timerId = null;
       state.updateFunction();
@@ -662,14 +672,18 @@ WebLynx._scheduleAutoUpdateTick = function() {
   state.scheduleNext();
 };
 
-/** Reschedule the pending tick when viewConfig.updateInterval changes mid-wait. */
+/** Reschedule the pending tick when the active interval config key changes mid-wait. */
 WebLynx._syncAutoUpdateInterval = function() {
   const state = WebLynx._autoUpdate;
   if (!state || typeof state.scheduleNext !== 'function') {
     return;
   }
 
-  const next = WebLynx.getUpdateIntervalMs(WebLynx._viewConfig, state.intervalMs);
+  const next = WebLynx.getConfigIntervalMs(
+    WebLynx._viewConfig,
+    state.intervalConfigKey || 'updateInterval',
+    state.intervalMs
+  );
   if (next === state.intervalMs) {
     return;
   }
