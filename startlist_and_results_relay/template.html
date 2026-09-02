@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>Start List &amp; Results — Relay</title>
     <link rel="icon" type="image/png" href="/views/startlist_and_results_relay/sso-logo.png">
+    <link rel="stylesheet" href="/views/shared/fonts.css">
     <link rel="stylesheet" href="/views/startlist_and_results_relay/styles.css">
   </head>
   <body class="preview-background">
@@ -90,9 +91,6 @@
           positionElement.textContent = `Lane ${racer.lane}`;
         }
 
-        clone.querySelector('.racer-name').textContent = racer.name || '-';
-        clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
-
         const laneColor = WebLynx.getLaneColorFromRacerName(config, racer.name);
         clone.querySelector('.lane-color').style.backgroundColor = laneColor;
         resultRow.style.setProperty('--lane-color', laneColor);
@@ -109,7 +107,7 @@
           timeElement.hidden = true;
         }
 
-        return clone;
+        return { row: clone, name: racer.name || '-', affiliation: racer.affiliation || '-' };
       }
 
       function updateResultsData() {
@@ -148,6 +146,7 @@
           resultsContainer.style.setProperty('--racer-count', String(Math.max(racerCount, 1)));
 
           const hasPlaces = sortedRacers.some((racer) => racer.hasPlaceData);
+          resultsContainer.classList.toggle('startlist-mode', !hasPlaces && sortedRacers.length > 0);
 
           if (unofficialIndicator) {
             if (DEMO_RESULTS_VIEW || hasPlaces) {
@@ -162,7 +161,11 @@
           }
 
           sortedRacers.forEach((racer) => {
-            resultsContainer.appendChild(createResultRow(racer, hasPlaces, config));
+            const { row, name, affiliation } = createResultRow(racer, hasPlaces, config);
+            resultsContainer.appendChild(row);
+            const mounted = resultsContainer.lastElementChild;
+            WebLynx.fitOverlayText(mounted.querySelector('.racer-name'), name);
+            WebLynx.fitOverlayText(mounted.querySelector('.affiliation'), affiliation, { minScale: 0.68 });
           });
         }, 'place');
       }
