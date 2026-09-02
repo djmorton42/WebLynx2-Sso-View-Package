@@ -42,9 +42,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      # Cross-repo access: github.token cannot see private djmorton42/WebLynx2.
+      # Add a PAT (classic repo scope, or fine-grained Contents: Read on WebLynx2)
+      # as repository secret WEBLYNX2_REPO_TOKEN on this SSO package repo.
       - name: Get WebLynx2 version
         id: get_weblynx2_version
         run: |
+          if [ -z "${{ secrets.WEBLYNX2_REPO_TOKEN }}" ]; then
+            echo "::error::Missing secret WEBLYNX2_REPO_TOKEN. Add a PAT with read access to djmorton42/WebLynx2 as a repository secret on this repo."
+            exit 1
+          fi
           if [ -n "${{ github.event.inputs.weblynx2_version }}" ]; then
             weblynx2_version="${{ github.event.inputs.weblynx2_version }}"
           else
@@ -54,7 +61,7 @@ jobs:
           echo "Using WebLynx2 version: $weblynx2_version"
           echo "weblynx2_version=$weblynx2_version" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.WEBLYNX2_REPO_TOKEN }}
 
       - name: Download WebLynx2 release
         run: |
@@ -81,7 +88,7 @@ jobs:
           echo "Contents of weblynx2-download after extraction:"
           ls -la ./weblynx2-download/
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.WEBLYNX2_REPO_TOKEN }}
 
       - name: Download SSO View Package
         run: |
