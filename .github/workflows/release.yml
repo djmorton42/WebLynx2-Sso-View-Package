@@ -1,0 +1,132 @@
+name: Release WebLynx2 SSO View Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      is_rc:
+        description: "Create release candidate build"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          # Get all tags starting with 'v' and exclude RC builds
+          latest_tag=$(git tag -l "v*" | grep -v "rc" | sort -V | tail -1)
+          if [ -z "$latest_tag" ]; then
+            latest_tag="v0.0.0"
+          fi
+          echo "Latest tag: $latest_tag"
+          echo "tag=$latest_tag" >> $GITHUB_OUTPUT
+
+      - name: Calculate next version
+        id: bump
+        run: |
+          bump_type=${{ github.event.inputs.bump }}
+          is_rc=${{ github.event.inputs.is_rc }}
+          current=${{ steps.get_tag.outputs.tag }}
+          current=${current#v}
+
+          IFS='.' read -r major minor patch <<< "$current"
+
+          case $bump_type in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          if [ "$is_rc" = "true" ]; then
+            timestamp=$(date -u +"%Y%m%d%H%M%S")
+            new_version="v$major.$minor.$patch-rc.$timestamp"
+            echo "is_rc=true" >> $GITHUB_OUTPUT
+          else
+            new_version="v$major.$minor.$patch"
+            echo "is_rc=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "New version: $new_version"
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Create VERSION.txt
+        run: |
+          VERSION_WITHOUT_V=${{ steps.bump.outputs.version }}
+          VERSION_WITHOUT_V=${VERSION_WITHOUT_V#v}
+          echo "$VERSION_WITHOUT_V" > VERSION.txt
+          echo "Created VERSION.txt with version: $VERSION_WITHOUT_V"
+
+      - name: Create zip package
+        id: create_zip
+        run: |
+          VERSION_WITHOUT_V=${{ steps.bump.outputs.version }}
+          VERSION_WITHOUT_V=${VERSION_WITHOUT_V#v}
+
+          zip -r "WebLynx2-SSO-View-Package-v${VERSION_WITHOUT_V}.zip" \
+            */ \
+            VERSION.txt \
+            README.md \
+            view.yaml
+
+          echo "zip_name=WebLynx2-SSO-View-Package-v${VERSION_WITHOUT_V}.zip" >> $GITHUB_OUTPUT
+
+      - name: Create new tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          IS_RC=${{ steps.bump.outputs.is_rc }}
+
+          if [ "$IS_RC" = "true" ]; then
+            git tag -a ${{ steps.bump.outputs.version }} -m "Release Candidate ${{ steps.bump.outputs.version }}"
+          else
+            git tag -a ${{ steps.bump.outputs.version }} -m "Release ${{ steps.bump.outputs.version }}"
+          fi
+          git push origin ${{ steps.bump.outputs.version }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.bump.outputs.version }}
+          name: ${{ steps.bump.outputs.is_rc == 'true' && format('Release Candidate {0}', steps.bump.outputs.version) || format('Release {0}', steps.bump.outputs.version) }}
+          files: ${{ steps.create_zip.outputs.zip_name }}
+          prerelease: ${{ steps.bump.outputs.is_rc == 'true' }}
+          body: |
+            ## WebLynx2 SSO View Package ${{ steps.bump.outputs.version }}
+
+            Modern SSO livestream broadcast views for WebLynx2.
+
+            ### Installation
+            1. Download the zip file
+            2. Extract into your WebLynx2 `Views` directory (or point `Server.ViewsDirectory` at the extracted folder)
+            3. Restart WebLynx2 to load the views
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

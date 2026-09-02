@@ -1,0 +1,221 @@
+name: Build WebLynx2 with SSO Views
+
+on:
+  workflow_dispatch:
+    inputs:
+      weblynx2_version:
+        description: "WebLynx2 version to use (leave empty for latest)"
+        required: false
+        default: ""
+        type: string
+      sso_version:
+        description: "SSO View Package version to use (leave empty for latest)"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  build-weblynx2-with-sso:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout SSO View Package
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest SSO View Package version
+        id: get_sso_version
+        run: |
+          if [ -n "${{ github.event.inputs.sso_version }}" ]; then
+            sso_version="${{ github.event.inputs.sso_version }}"
+          else
+            # Only get releases that start with 'v' (exclude integrated releases)
+            sso_version=$(gh release list --repo ${{ github.repository }} --limit 50 --json tagName --jq '.[] | select(.tagName | startswith("v")) | .tagName' | head -1)
+            sso_version=${sso_version#v}
+          fi
+          echo "Using SSO View Package version: $sso_version"
+          echo "sso_version=$sso_version" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Get WebLynx2 version
+        id: get_weblynx2_version
+        run: |
+          if [ -n "${{ github.event.inputs.weblynx2_version }}" ]; then
+            weblynx2_version="${{ github.event.inputs.weblynx2_version }}"
+          else
+            weblynx2_version=$(gh release list --repo djmorton42/WebLynx2 --limit 1 --json tagName --jq '.[0].tagName')
+            weblynx2_version=${weblynx2_version#v}
+          fi
+          echo "Using WebLynx2 version: $weblynx2_version"
+          echo "weblynx2_version=$weblynx2_version" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download WebLynx2 release
+        run: |
+          weblynx2_version=${{ steps.get_weblynx2_version.outputs.weblynx2_version }}
+          echo "Downloading WebLynx2 v$weblynx2_version..."
+
+          echo "Available assets for v$weblynx2_version:"
+          gh release view "v$weblynx2_version" --repo djmorton42/WebLynx2 --json assets --jq '.assets[].name'
+
+          gh release download "v$weblynx2_version" --repo djmorton42/WebLynx2 --pattern "*win*.zip" --dir ./weblynx2-download
+
+          echo "Downloaded files:"
+          ls -la ./weblynx2-download/
+
+          cd weblynx2-download
+          for zip_file in *win*.zip; do
+            if [ -f "$zip_file" ]; then
+              echo "Extracting $zip_file"
+              unzip -q "$zip_file"
+            fi
+          done
+          cd ..
+
+          echo "Contents of weblynx2-download after extraction:"
+          ls -la ./weblynx2-download/
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download SSO View Package
+        run: |
+          sso_version=${{ steps.get_sso_version.outputs.sso_version }}
+          echo "Downloading SSO View Package v$sso_version..."
+
+          gh release download "v$sso_version" --repo ${{ github.repository }} --pattern "*.zip" --dir ./sso-download
+
+          cd sso-download
+          unzip -q *.zip
+          cd ..
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Integrate SSO Views into WebLynx2
+        run: |
+          weblynx2_dir="./weblynx2-download"
+
+          echo "Using WebLynx2 directory: $weblynx2_dir"
+          ls -la "$weblynx2_dir"
+
+          # Remove the example view that ships with standalone WebLynx2
+          if [ -d "$weblynx2_dir/Views/example" ]; then
+            echo "Removing example view directory"
+            rm -rf "$weblynx2_dir/Views/example"
+          fi
+
+          mkdir -p "$weblynx2_dir/Views"
+
+          # Copy all SSO view packages (and shared/) into Views/
+          for dir in ./sso-download/*/; do
+            if [ -d "$dir" ]; then
+              dirname=$(basename "$dir")
+              echo "Copying view package: $dirname"
+              cp -r "$dir" "$weblynx2_dir/Views/"
+            fi
+          done
+
+          cp ./sso-download/VERSION.txt "$weblynx2_dir/Views/" 2>/dev/null || echo "No VERSION.txt found"
+          cp ./sso-download/README.md "$weblynx2_dir/Views/" 2>/dev/null || echo "No README.md found"
+          cp ./sso-download/view.yaml "$weblynx2_dir/Views/" 2>/dev/null || echo "No view.yaml found"
+
+          echo "Successfully integrated SSO views into WebLynx2"
+          echo "Final Views directory:"
+          ls -la "$weblynx2_dir/Views"
+
+      - name: Create integrated WebLynx2 package
+        id: create_package
+        run: |
+          weblynx2_version=${{ steps.get_weblynx2_version.outputs.weblynx2_version }}
+          sso_version=${{ steps.get_sso_version.outputs.sso_version }}
+          timestamp=$(date -u +"%Y%m%d-%H%M%S")
+
+          weblynx2_dir="./weblynx2-download"
+          package_name="WebLynx2-v${weblynx2_version}-with-SSO-Views-v${sso_version}-${timestamp}.zip"
+
+          cd "$weblynx2_dir"
+          zip -r "../${package_name}" . -x "*.zip"
+          cd ..
+
+          ls -la "$package_name"
+          echo "Created integrated package: $package_name"
+          echo "package_name=$package_name" >> $GITHUB_OUTPUT
+          echo "timestamp=${timestamp}" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Body
+        id: generate_release_body
+        run: |
+          views_list=""
+          for dir in ./sso-download/*/; do
+            if [ -d "$dir" ]; then
+              dirname=$(basename "$dir")
+              if [ "$dirname" != "shared" ] && [ -f "$dir/template.html" ]; then
+                if [ -z "$views_list" ]; then
+                  views_list="  - $dirname"
+                else
+                  views_list="$views_list"$'\n'"  - $dirname"
+                fi
+              fi
+            fi
+          done
+
+          weblynx2_version="${{ steps.get_weblynx2_version.outputs.weblynx2_version }}"
+          sso_version="${{ steps.get_sso_version.outputs.sso_version }}"
+          timestamp="${{ steps.create_package.outputs.timestamp }}"
+
+          {
+            echo "## WebLynx2 with SSO Views Integration"
+            echo ""
+            echo "This release contains WebLynx2 $weblynx2_version with SSO View Package $sso_version pre-integrated."
+            echo ""
+            echo "### What's Included"
+            echo "- **WebLynx2 Application**: Complete WebLynx2 installation"
+            echo "- **SSO Views**: All SSO view packages pre-installed"
+            echo "$views_list"
+            echo ""
+            echo "The stock \`example\` view from standalone WebLynx2 has been removed."
+            echo ""
+            echo "### Installation"
+            echo "1. Download the zip file"
+            echo "2. Extract to your desired location"
+            echo "3. Run \`WebLynx2.exe\` to start the application"
+            echo "4. The SSO views will be available from the views index"
+            echo ""
+            echo "### Build Information"
+            echo "- **Build Date**: $timestamp"
+            echo "- **WebLynx2 Version**: $weblynx2_version"
+            echo "- **SSO View Package Version**: $sso_version"
+          } > release_body.md
+
+          echo "Generated release body:"
+          cat release_body.md
+
+          echo "release_body<<EOF" >> $GITHUB_OUTPUT
+          cat release_body.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: weblynx2-integrated-v${{ steps.get_weblynx2_version.outputs.weblynx2_version }}-sso-v${{ steps.get_sso_version.outputs.sso_version }}-${{ steps.create_package.outputs.timestamp }}
+          name: WebLynx2 ${{ steps.get_weblynx2_version.outputs.weblynx2_version }} with SSO Views ${{ steps.get_sso_version.outputs.sso_version }}
+          files: ${{ steps.create_package.outputs.package_name }}
+          body: ${{ steps.generate_release_body.outputs.release_body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **WebLynx2 Version**: ${{ steps.get_weblynx2_version.outputs.weblynx2_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **SSO View Package Version**: ${{ steps.get_sso_version.outputs.sso_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integrated Package**: ${{ steps.create_package.outputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The integrated package has been uploaded and is ready for download." >> $GITHUB_STEP_SUMMARY
