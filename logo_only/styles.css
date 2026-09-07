@@ -28,7 +28,7 @@ body.preview-background {
   background: #0b0e12 url("background.png") center / cover no-repeat;
 }
 
-/* Logo — position/size matches announcements_modern; opacity stays subdued */
+/* Logo — position/size matches announcements; opacity stays subdued */
 .sso-logo {
   position: fixed;
   top: var(--safe-y);

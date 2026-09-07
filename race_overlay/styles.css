@@ -51,7 +51,7 @@ body.preview-background {
   height: 100%;
 }
 
-/* SSO logo — position/size matches announcements_modern; opacity stays subdued */
+/* SSO logo — position/size matches announcements; opacity stays subdued */
 .sso-logo {
   position: fixed;
   top: var(--safe-y);
