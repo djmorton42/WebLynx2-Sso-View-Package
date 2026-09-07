@@ -1,1 +1,1 @@
-Live race overlay — race clock, racer splits, and laps-to-go indicator with modern placard styling
+Live race overlay — race clock, racer splits, and laps-to-go indicator
