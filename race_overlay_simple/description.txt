@@ -1,0 +1,1 @@
+Live race overlay without lap timing — race clock, racer name, affiliation, and lane color in lane order

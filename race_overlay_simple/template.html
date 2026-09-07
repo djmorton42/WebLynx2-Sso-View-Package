@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Race Overlay — Simple</title>
+    <link rel="icon" type="image/png" href="/views/race_overlay_simple/sso-logo.png">
+    <link rel="stylesheet" href="/views/shared/fonts.css">
+    <link rel="stylesheet" href="/views/race_overlay_simple/styles.css">
+  </head>
+  <body class="preview-background">
+    <main class="broadcast-overlay" aria-label="Live race overlay">
+      <div class="sso-logo">
+        <img src="/views/race_overlay_simple/sso-logo.png" alt="Speed Skating Ontario">
+      </div>
+
+      <div class="race-clock placard-panel" id="race-clock">00:00.0</div>
+
+      <aside class="race-stack" aria-label="Race information">
+        <div class="event-name placard-panel placard-panel--accent" id="event-name">
+          Event Name
+        </div>
+
+        <div class="racer-stack" id="racer-stack"></div>
+      </aside>
+    </main>
+
+    <template id="racer-template">
+      <div class="racer-block placard-panel">
+        <div class="lane-color" aria-hidden="true"></div>
+        <div class="racer-info">
+          <div class="racer-name"></div>
+          <div class="affiliation"></div>
+        </div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+      const SORT_BY = 'lane';
+
+      function updateRacerBlock(block, racer, context) {
+        const { config } = context;
+        block.querySelector('.lane-color').style.backgroundColor = WebLynx.getLaneColor(config, racer.lane);
+        WebLynx.fitOverlayText(block.querySelector('.racer-name'), racer.name || '-');
+        WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
+      }
+
+      function updateRaceData() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            console.error('Error fetching race data:', error);
+            return;
+          }
+
+          const config = WebLynx.applyViewConfig(data);
+          WebLynx.updateRaceClockDisplay(data);
+
+          const eventName = data.event?.eventName || 'Event Name';
+          const eventNumber = data.event?.eventNumber || '';
+          const displayName = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
+          document.getElementById('event-name').textContent = displayName;
+
+          WebLynx.syncRacerStack(document.getElementById('racer-stack'), WebLynx.getActiveRacers(data.racers), {
+            updateRow: updateRacerBlock,
+            context: { config }
+          });
+        }, SORT_BY);
+      }
+
+      WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL, SORT_BY, 'fastUpdateInterval');
+    </script>
+  </body>
+</html>

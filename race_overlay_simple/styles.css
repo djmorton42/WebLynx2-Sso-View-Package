@@ -1,0 +1,262 @@
+/* Race overlay simple — placard-themed live race graphics (no lap timing) */
+
+:root {
+  --ontario-red: #e21d2f;
+  --ink: 13, 15, 18;
+  --white: #f7f8fa;
+  --muted-white: #d8dce2;
+  --edge-light: rgba(255, 255, 255, 0.44);
+  --edge-dark: rgba(0, 0, 0, 0.52);
+  --panel-ring: rgba(0, 0, 0, 0.4);
+  --panel-skew: 12px;
+  --stack-width: clamp(396px, 24.2vw, 484px);
+  --safe-x: clamp(24px, 3vw, 58px);
+  --safe-y: clamp(20px, 2.6vh, 30px);
+  --header-height: clamp(78px, 9.2vh, 100px);
+  --stack-gap: clamp(5px, 0.6vh, 8px);
+  --condensed: "Roboto Condensed", "Arial Narrow", "Aptos Narrow", Arial,
+    sans-serif;
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 1920px;
+  height: 1080px;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  color: var(--white);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* TEMPORARY: remove `preview-background` from <body> before broadcast use. */
+body.preview-background {
+  background: #0b0e12 url("background.png") center / cover no-repeat;
+}
+
+.broadcast-overlay {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* SSO logo — position/size matches announcements_modern; opacity stays subdued */
+.sso-logo {
+  position: fixed;
+  top: var(--safe-y);
+  right: var(--safe-x);
+  left: var(--safe-x);
+  height: var(--header-height);
+  z-index: 1000;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: calc(clamp(18px, 1.8vw, 34px) + 15px);
+  pointer-events: none;
+}
+
+.sso-logo img {
+  display: block;
+  width: auto;
+  height: clamp(76px, 8.2vh, 92px);
+  max-width: clamp(160px, 12vw, 230px);
+  max-height: calc(var(--header-height) - 8px);
+  object-fit: contain;
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.35));
+}
+
+/* Shared placard panel */
+.placard-panel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: rgba(var(--ink), 0.82);
+  border: 1px solid var(--edge-light);
+  border-bottom-color: var(--edge-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 14px rgba(0, 0, 0, 0.22);
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--panel-skew)) 100%, 0 100%);
+  filter: drop-shadow(0 0 0 1px var(--panel-ring));
+}
+
+.placard-panel--accent {
+  border-left: 0;
+}
+
+.placard-panel--accent::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 16px;
+  border-top: 5px solid var(--ontario-red);
+  border-bottom: 5px solid var(--ontario-red);
+  border-left: 5px solid var(--ontario-red);
+}
+
+/* Race clock — bottom right */
+.race-clock {
+  position: fixed;
+  right: 50px;
+  bottom: 60px;
+  z-index: 1000;
+  width: auto;
+  min-width: clamp(148px, 9.5vw, 188px);
+  padding: clamp(10px, 1.1vh, 14px) clamp(16px, 1.2vw, 22px);
+  font-family: var(--condensed);
+  font-size: clamp(28px, 2.2vw, 40px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+  /* Isolate digit repaints from the rest of the overlay layer. */
+  contain: layout style paint;
+}
+
+.race-clock.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Bottom-left stack */
+.race-stack {
+  position: fixed;
+  bottom: 30px;
+  left: 50px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap);
+  width: var(--stack-width);
+  max-height: calc(100% - 60px);
+}
+
+.event-name {
+  padding: clamp(8px, 0.9vh, 11px) clamp(14px, 1.1vw, 18px)
+    clamp(8px, 0.9vh, 11px) clamp(28px, 2vw, 36px);
+  font-family: var(--condensed);
+  font-size: clamp(15px, 1.15vw, 20px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.racer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.racer-block {
+  display: grid;
+  grid-template-columns: clamp(28px, 2.2vw, 34px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(8px, 0.8vw, 12px);
+  padding: clamp(7px, 0.8vh, 10px) clamp(12px, 1vw, 16px);
+}
+
+.lane-color {
+  width: clamp(22px, 1.8vw, 28px);
+  height: clamp(22px, 1.8vw, 28px);
+  border: 1px solid var(--edge-light);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.racer-info {
+  min-width: 0;
+}
+
+.racer-name {
+  margin: 0;
+  font-family: var(--condensed);
+  font-size: clamp(14px, 1.05vw, 18px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  min-width: 0;
+}
+
+.racer-name.fit-text--wrap {
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.affiliation {
+  margin: 2px 0 0;
+  color: var(--muted-white);
+  font-family: var(--condensed);
+  font-size: clamp(11px, 0.85vw, 14px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  min-width: 0;
+}
+
+.affiliation.fit-text--wrap {
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+/* Compact sizing for larger fields */
+.racer-stack.racers-7 .racer-name,
+.racer-stack.racers-8 .racer-name,
+.racer-stack.racers-9 .racer-name,
+.racer-stack.racers-10 .racer-name {
+  font-size: clamp(12px, 0.95vw, 16px);
+}
+
+.racer-stack.racers-7 .affiliation,
+.racer-stack.racers-8 .affiliation,
+.racer-stack.racers-9 .affiliation,
+.racer-stack.racers-10 .affiliation {
+  font-size: clamp(10px, 0.78vw, 12px);
+}
+
+.racer-stack.racers-9,
+.racer-stack.racers-10 {
+  --stack-gap: clamp(4px, 0.45vh, 6px);
+}
+
+.racer-stack.racers-9 .racer-block,
+.racer-stack.racers-10 .racer-block {
+  padding-block: clamp(5px, 0.55vh, 7px);
+}
+
+@media (max-width: 1920px) {
+  html,
+  body {
+    width: 100vw;
+    height: 100vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .race-clock {
+    transition: none;
+  }
+}
