@@ -23,10 +23,11 @@ body {
   position: relative;
 }
 
-/* TEMPORARY: remove `preview-background` from <body> before broadcast use. */
+/* TEMPORARY preview bg for local testing — uncomment to show background.png.
 body.preview-background {
   background: #0b0e12 url("background.png") center / cover no-repeat;
 }
+*/
 
 /* Logo — position/size matches announcements; opacity stays subdued */
 .sso-logo {
