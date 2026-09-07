@@ -194,7 +194,7 @@ body.preview-background {
   margin: 0;
   font-family: var(--condensed);
   font-size: clamp(14px, 1.05vw, 18px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.05;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -211,7 +211,7 @@ body.preview-background {
   color: var(--muted-white);
   font-family: var(--condensed);
   font-size: clamp(11px, 0.85vw, 14px);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: 0.04em;
   text-transform: uppercase;
