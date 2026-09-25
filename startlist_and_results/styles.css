@@ -141,9 +141,16 @@ body.preview-background {
   width: max-content;
   max-width: min(1080px, calc(100% - (var(--safe-x) * 2)));
   transform: translateX(-50%);
+  opacity: 1;
+  transition: opacity 500ms ease;
   filter:
     drop-shadow(0 0 0 1px var(--panel-ring))
     drop-shadow(0 6px 18px rgba(0, 0, 0, 0.28));
+}
+
+.race-details.is-race-faded-out {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .race-details-panel {
@@ -222,6 +229,13 @@ body.preview-background {
   justify-content: center;
   min-height: 0;
   padding-bottom: clamp(12px, 1.5vh, 20px);
+  opacity: 1;
+  transition: opacity 500ms ease;
+}
+
+.results-section.is-race-faded-out {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .results-container {
@@ -451,11 +465,12 @@ body.preview-background {
   }
 
   .race-details {
-    animation: race-details-reveal 460ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    /* backwards (not both) so opacity stays transitionable after load reveal */
+    animation: race-details-reveal 460ms 120ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 
   .results-section {
-    animation: content-reveal 460ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: content-reveal 460ms 120ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 }
 

@@ -111,6 +111,83 @@
         return { row: clone, name: racer.name || '-', affiliation: racer.affiliation || '-' };
       }
 
+      function clearRaceContent() {
+        const resultsContainer = document.getElementById('results-container');
+        resultsContainer.innerHTML = '';
+        resultsContainer.className = 'results-container';
+        resultsContainer.style.removeProperty('--racer-count');
+
+        document.getElementById('race-details-bar').textContent = '';
+
+        const unofficialIndicator = document.querySelector('.unofficial-indicator');
+        if (unofficialIndicator) {
+          unofficialIndicator.hidden = true;
+        }
+      }
+
+      function paintResults(data) {
+        const config = WebLynx.applyViewConfig(data);
+        const unofficialIndicator = document.querySelector('.unofficial-indicator');
+
+        const allRacers = data.racers ? WebLynx.getActiveRacers(data.racers) : [];
+        let sortedRacers = allRacers;
+
+        if (DEMO_RESULTS_VIEW && sortedRacers.length === 0) {
+          sortedRacers = DEMO_RACERS;
+          document.getElementById('race-details-bar').textContent = 'Demo - Results Preview';
+        } else if (data.event) {
+          const eventName = data.event.eventName || 'Race Event';
+          const eventNumber = data.event.eventNumber || '';
+          const raceDetails = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
+          document.getElementById('race-details-bar').textContent = raceDetails;
+        } else {
+          document.getElementById('race-details-bar').textContent = 'No active race';
+        }
+
+        const resultsContainer = document.getElementById('results-container');
+        resultsContainer.innerHTML = '';
+
+        const racerCount = sortedRacers.length;
+        resultsContainer.className = 'results-container';
+        if (racerCount >= 1 && racerCount <= 10) {
+          resultsContainer.classList.add(`racers-${racerCount}`);
+        }
+        resultsContainer.style.setProperty('--racer-count', String(Math.max(racerCount, 1)));
+
+        const hasPlaces = sortedRacers.some((racer) => racer.hasPlaceData);
+        resultsContainer.classList.toggle('startlist-mode', !hasPlaces && sortedRacers.length > 0);
+
+        if (unofficialIndicator) {
+          if (DEMO_RESULTS_VIEW || hasPlaces) {
+            unofficialIndicator.textContent = 'Unofficial Results';
+            unofficialIndicator.hidden = false;
+          } else if (sortedRacers.length > 0) {
+            unofficialIndicator.textContent = 'Startlist';
+            unofficialIndicator.hidden = false;
+          } else {
+            unofficialIndicator.hidden = true;
+          }
+        }
+
+        sortedRacers.forEach((racer) => {
+          const { row, name, affiliation } = createResultRow(racer, hasPlaces, config);
+          resultsContainer.appendChild(row);
+          const mounted = resultsContainer.lastElementChild;
+          WebLynx.fitOverlayText(mounted.querySelector('.racer-name'), name);
+          WebLynx.fitOverlayText(mounted.querySelector('.affiliation'), affiliation, { minScale: 0.68 });
+        });
+      }
+
+      const raceTransition = WebLynx.createRaceIdentityTransition({
+        fadeMs: 500,
+        holdMs: 3000,
+        getFadeElements: () => [
+          document.querySelector('.race-details'),
+          document.querySelector('.results-section')
+        ],
+        onBlank: clearRaceContent
+      });
+
       function updateResultsData() {
         WebLynx.updateRaceData((data, error) => {
           if (error) {
@@ -118,56 +195,9 @@
             return;
           }
 
-          const config = WebLynx.applyViewConfig(data);
+          WebLynx.applyViewConfig(data);
           WebLynx.applyMeetIdentity(data);
-
-          const unofficialIndicator = document.querySelector('.unofficial-indicator');
-
-          const allRacers = data.racers ? WebLynx.getActiveRacers(data.racers) : [];
-          let sortedRacers = allRacers;
-
-          if (DEMO_RESULTS_VIEW && sortedRacers.length === 0) {
-            sortedRacers = DEMO_RACERS;
-            document.getElementById('race-details-bar').textContent = 'Demo - Results Preview';
-          } else if (data.event) {
-            const eventName = data.event.eventName || 'Race Event';
-            const eventNumber = data.event.eventNumber || '';
-            const raceDetails = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
-            document.getElementById('race-details-bar').textContent = raceDetails;
-          }
-
-          const resultsContainer = document.getElementById('results-container');
-          resultsContainer.innerHTML = '';
-
-          const racerCount = sortedRacers.length;
-          resultsContainer.className = 'results-container';
-          if (racerCount >= 1 && racerCount <= 10) {
-            resultsContainer.classList.add(`racers-${racerCount}`);
-          }
-          resultsContainer.style.setProperty('--racer-count', String(Math.max(racerCount, 1)));
-
-          const hasPlaces = sortedRacers.some((racer) => racer.hasPlaceData);
-          resultsContainer.classList.toggle('startlist-mode', !hasPlaces && sortedRacers.length > 0);
-
-          if (unofficialIndicator) {
-            if (DEMO_RESULTS_VIEW || hasPlaces) {
-              unofficialIndicator.textContent = 'Unofficial Results';
-              unofficialIndicator.hidden = false;
-            } else if (sortedRacers.length > 0) {
-              unofficialIndicator.textContent = 'Startlist';
-              unofficialIndicator.hidden = false;
-            } else {
-              unofficialIndicator.hidden = true;
-            }
-          }
-
-          sortedRacers.forEach((racer) => {
-            const { row, name, affiliation } = createResultRow(racer, hasPlaces, config);
-            resultsContainer.appendChild(row);
-            const mounted = resultsContainer.lastElementChild;
-            WebLynx.fitOverlayText(mounted.querySelector('.racer-name'), name);
-            WebLynx.fitOverlayText(mounted.querySelector('.affiliation'), affiliation, { minScale: 0.68 });
-          });
+          raceTransition.run(data, paintResults);
         }, 'place');
       }
 
