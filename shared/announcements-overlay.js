@@ -11,6 +11,34 @@
  *   </script>
  */
 (function (WebLynx) {
+  let venueClockTimer = null;
+
+  function formatVenueClockTime(date) {
+    return date.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  }
+
+  function startVenueClock() {
+    const clockEl = document.getElementById('venue-clock-time');
+    if (!clockEl || venueClockTimer !== null) {
+      return;
+    }
+
+    function tick() {
+      const now = new Date();
+      const formatted = formatVenueClockTime(now);
+      WebLynx.setTextIfChanged(clockEl, formatted);
+      clockEl.dateTime = now.toISOString();
+    }
+
+    tick();
+    venueClockTimer = setInterval(tick, 1000);
+  }
+
   function setAnnouncementVisible(visible) {
     const announcementElement = document.getElementById('announcement-message');
     const announcementSection = document.querySelector('.announcement');
@@ -153,6 +181,7 @@
 
   WebLynx.startAnnouncementOverlay = function (options) {
     const opts = options || {};
+    startVenueClock();
     WebLynx.startAutoUpdate(
       updateAnnouncementData,
       WebLynx.DEFAULT_UPDATE_INTERVAL_MS,
