@@ -16,13 +16,18 @@
           <p id="event-subtitle"></p>
         </div>
 
-        <div class="speed-line" aria-hidden="true"></div>
+        <div class="header-main">
+          <div class="header-line-zone">
+            <div class="speed-line" aria-hidden="true"></div>
+            <time id="venue-clock-time" class="venue-clock-time" aria-label="Current time">--:--</time>
+          </div>
 
-        <img
-          class="sso-logo"
-          src="/views/announcements/sso-logo.png"
-          alt="Speed Skating Ontario"
-        />
+          <img
+            class="sso-logo"
+            src="/views/announcements/sso-logo.png"
+            alt="Speed Skating Ontario"
+          />
+        </div>
       </header>
 
       <section class="announcement" aria-live="polite" hidden>
@@ -33,11 +38,6 @@
           </div>
         </div>
       </section>
-
-      <div class="venue-clock-pill" aria-label="Local time">
-        <span class="venue-clock-label">Local time</span>
-        <time id="venue-clock-time" class="venue-clock-time">--:--:--</time>
-      </div>
 
       <footer class="partner-bar">
         <p class="partner-heading">Thank you to<br />our partners</p>

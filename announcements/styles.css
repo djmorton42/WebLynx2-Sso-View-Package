@@ -9,6 +9,8 @@
   --edge-dark: rgba(0, 0, 0, 0.52);
   --panel-ring: rgba(0, 0, 0, 0.4);
   --panel-skew: 15px;
+  --header-gap: clamp(18px, 2vw, 38px);
+  --header-logo-gap: clamp(14px, 1.4vw, 24px);
   --safe-x: clamp(24px, 3vw, 58px);
   --safe-y: clamp(20px, 2.6vh, 30px);
   --footer-safe-x: clamp(40px, 4vw, 80px);
@@ -60,10 +62,10 @@ body.preview-background {
   left: var(--safe-x);
   height: var(--header-height);
   display: grid;
-  grid-template-columns: max-content minmax(80px, 1fr) max-content;
-  align-items: center;
+  grid-template-columns: max-content minmax(80px, 1fr);
+  align-items: stretch;
   overflow: visible;
-  gap: clamp(18px, 2vw, 38px);
+  gap: var(--header-gap);
   padding: 0 calc(clamp(18px, 1.8vw, 34px) + var(--panel-skew)) 0
     clamp(18px, 1.8vw, 34px);
   background: rgba(var(--ink), 0.91);
@@ -78,6 +80,7 @@ body.preview-background {
 
 .event-copy {
   min-width: 0;
+  align-self: center;
   text-transform: uppercase;
 }
 
@@ -106,25 +109,53 @@ body.preview-background {
   letter-spacing: 0.065em;
 }
 
-.speed-line {
-  position: relative;
-  height: 2px;
-  background: var(--ontario-red);
+.header-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--header-logo-gap);
+  min-width: 0;
+  align-self: stretch;
 }
 
-.speed-line::after {
-  content: "";
+.header-line-zone {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding-bottom: clamp(4px, 0.5vh, 8px);
+}
+
+.speed-line {
   position: absolute;
-  right: calc(clamp(18px, 2vw, 38px) * -1);
-  width: clamp(18px, 2vw, 38px);
+  left: 0;
+  right: calc(-1 * var(--header-logo-gap));
+  top: 50%;
   height: 2px;
+  margin: 0;
+  transform: translateY(-50%);
   background: var(--ontario-red);
+  pointer-events: none;
+}
+
+.venue-clock-time {
+  font-family: var(--condensed);
+  font-size: clamp(20px, 1.65vw, 30px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--white);
+  white-space: nowrap;
 }
 
 .event-header .sso-logo {
   display: block;
-  position: relative;
-  z-index: 1;
+  flex-shrink: 0;
   width: auto;
   height: clamp(76px, 8.2vh, 92px);
   max-width: clamp(160px, 12vw, 230px);
@@ -216,56 +247,6 @@ body.preview-background {
   text-transform: uppercase;
 }
 
-.venue-clock-pill {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--partner-height) + clamp(12px, 1.4vh, 18px));
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: clamp(14px, 1.2vw, 20px);
-  padding: clamp(8px, 0.9vh, 12px) clamp(22px, 2vw, 32px)
-    clamp(8px, 0.9vh, 12px) clamp(20px, 1.8vw, 28px);
-  background: rgba(var(--ink), 0.93);
-  border: 1px solid var(--edge-light);
-  border-bottom-color: var(--edge-dark);
-  box-shadow:
-    0 0 0 1px var(--panel-ring),
-    0 4px 14px rgba(0, 0, 0, 0.28);
-  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
-}
-
-.venue-clock-pill::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 6px;
-  background: var(--ontario-red);
-}
-
-.venue-clock-label {
-  font-family: var(--condensed);
-  font-size: clamp(13px, 0.95vw, 17px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted-white);
-}
-
-.venue-clock-time {
-  font-family: var(--condensed);
-  font-size: clamp(32px, 2.6vw, 46px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-  color: var(--white);
-}
-
 .partner-bar {
   position: absolute;
   right: 0;
@@ -355,7 +336,15 @@ body.preview-background {
 
 @media (max-aspect-ratio: 4 / 3) {
   .event-header {
-    grid-template-columns: minmax(0, 1fr) minmax(50px, 0.7fr) max-content;
+    grid-template-columns: minmax(0, 1fr) minmax(50px, 0.85fr);
+  }
+
+  .header-main {
+    gap: 10px;
+  }
+
+  .venue-clock-time {
+    font-size: clamp(18px, 1.5vw, 26px);
   }
 
   .partner-bar {
@@ -369,13 +358,8 @@ body.preview-background {
 
 @media (prefers-reduced-motion: no-preference) {
   .event-header,
-  .partner-bar,
-  .venue-clock-pill {
+  .partner-bar {
     animation: broadcast-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .venue-clock-pill {
-    animation-delay: 80ms;
   }
 
   .announcement:not([hidden]) {
