@@ -230,6 +230,7 @@ body.preview-background {
   letter-spacing: 0.03em;
   text-align: center;
   text-transform: uppercase;
+  white-space: pre-line;
 }
 
 .racer-stack {

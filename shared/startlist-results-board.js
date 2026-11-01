@@ -314,11 +314,19 @@
         sortedRacers = demoRacers;
         document.getElementById(raceDetailsBarId).textContent = 'Demo - Results Preview';
       } else if (data.event) {
-        const eventName = data.event.eventName || 'Race Event';
-        const eventNumber = data.event.eventNumber || '';
-        document.getElementById(raceDetailsBarId).textContent = eventNumber
-          ? `${eventNumber} - ${eventName}`
-          : eventName;
+        const bar = document.getElementById(raceDetailsBarId);
+        if (window.SsoEventDisplay) {
+          SsoEventDisplay.applyEventHeading(
+            bar,
+            data.event.eventNumber || '',
+            data.event.eventName,
+            'Race Event'
+          );
+        } else {
+          const eventName = data.event.eventName || 'Race Event';
+          const eventNumber = data.event.eventNumber || '';
+          bar.textContent = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
+        }
       }
 
       const hasPlaces = sortedRacers.some(function (racer) { return racer.hasPlaceData; });

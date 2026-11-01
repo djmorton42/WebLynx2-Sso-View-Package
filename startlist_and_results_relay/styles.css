@@ -213,6 +213,7 @@ body.preview-background {
   letter-spacing: 0.025em;
   text-align: center;
   text-transform: uppercase;
+  white-space: pre-line;
 }
 
 .results-section {

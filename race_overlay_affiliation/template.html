@@ -35,6 +35,7 @@
     </template>
 
     <script src="/views/shared/weblynx-helpers.js"></script>
+    <script src="/views/shared/sso-event-display.js"></script>
     <script>
       const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
       const SORT_BY = 'lane';
@@ -56,10 +57,12 @@
           const config = WebLynx.applyViewConfig(data);
           WebLynx.updateRaceClockDisplay(data);
 
-          const eventName = data.event?.eventName || 'Event Name';
-          const eventNumber = data.event?.eventNumber || '';
-          const displayName = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
-          document.getElementById('event-name').textContent = displayName;
+          SsoEventDisplay.applyEventHeading(
+            document.getElementById('event-name'),
+            data.event?.eventNumber || '',
+            data.event?.eventName,
+            'Event Name'
+          );
 
           WebLynx.syncRacerStack(document.getElementById('racer-stack'), WebLynx.getActiveRacers(data.racers), {
             updateRow: updateRacerBlock,
