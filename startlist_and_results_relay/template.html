@@ -50,184 +50,28 @@
     </template>
 
     <script src="/views/shared/weblynx-helpers.js"></script>
+    <script src="/views/shared/startlist-results-board.js"></script>
     <script>
       const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
 
-      const DEMO_RESULTS_VIEW = false;
-      const DEMO_RACERS = [
-        { lane: 1, name: 'TEAM RED', affiliation: 'Club A', hasPlaceData: true, placeText: '1', finalTime: '00:01:25.3400000', cumulativeSplitTime: '00:01:25.3400000' },
-        { lane: 2, name: 'TEAM BLUE', affiliation: 'Club B', hasPlaceData: true, placeText: '2', finalTime: '00:01:26.1200000', cumulativeSplitTime: '00:01:26.1200000' },
-        { lane: 3, name: 'TEAM YELLOW', affiliation: 'Club A', hasPlaceData: true, placeText: '3', finalTime: '00:01:27.8900000', cumulativeSplitTime: '00:01:27.8900000' },
-        { lane: 4, name: 'TEAM GREEN', affiliation: 'Club C', hasPlaceData: true, placeText: '4', finalTime: '00:01:28.4500000', cumulativeSplitTime: '00:01:28.4500000' },
-      ];
-
-      function getLaneBracketStroke(color) {
-        const hex = String(color || '').trim().replace(/^#/, '');
-        if (!/^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(hex)) {
-          return 'rgba(255, 255, 255, 0.44)';
+      const resultsBoard = WebLynx.createStartlistResultsBoard({
+        demoResultsView: false,
+        demoRacers: [
+          { lane: 1, name: 'TEAM RED', affiliation: 'Club A', hasPlaceData: true, placeText: '1', finalTime: '00:01:25.3400000', cumulativeSplitTime: '00:01:25.3400000' },
+          { lane: 2, name: 'TEAM BLUE', affiliation: 'Club B', hasPlaceData: true, placeText: '2', finalTime: '00:01:26.1200000', cumulativeSplitTime: '00:01:26.1200000' },
+          { lane: 3, name: 'TEAM YELLOW', affiliation: 'Club A', hasPlaceData: true, placeText: '3', finalTime: '00:01:27.8900000', cumulativeSplitTime: '00:01:27.8900000' },
+          { lane: 4, name: 'TEAM GREEN', affiliation: 'Club C', hasPlaceData: true, placeText: '4', finalTime: '00:01:28.4500000', cumulativeSplitTime: '00:01:28.4500000' }
+        ],
+        resolveLaneColor: function (config, racer) {
+          return WebLynx.getLaneColorFromRacerName(config, racer.name);
         }
-
-        const normalized = hex.length === 3
-          ? hex.split('').map((ch) => ch + ch).join('')
-          : hex;
-        const r = parseInt(normalized.slice(0, 2), 16);
-        const g = parseInt(normalized.slice(2, 4), 16);
-        const b = parseInt(normalized.slice(4, 6), 16);
-        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-        return luminance > 0.62
-          ? 'rgba(0, 0, 0, 0.55)'
-          : 'rgba(255, 255, 255, 0.44)';
-      }
-
-      function createResultRow(racer, hasPlaces, config) {
-        const template = document.getElementById('result-template');
-        const clone = template.content.cloneNode(true);
-        const resultRow = clone.querySelector('.result-row');
-
-        const positionElement = clone.querySelector('.position');
-        if (racer.hasPlaceData) {
-          positionElement.textContent = racer.placeText;
-        } else {
-          positionElement.textContent = `Lane ${racer.lane}`;
-        }
-
-        const laneColor = WebLynx.getLaneColorFromRacerName(config, racer.name);
-        clone.querySelector('.lane-color').style.backgroundColor = laneColor;
-        resultRow.style.setProperty('--lane-color', laneColor);
-        resultRow.style.setProperty('--lane-bracket-stroke', getLaneBracketStroke(laneColor));
-
-        const timeElement = clone.querySelector('.final-time');
-        const hasAlphaCode = racer.hasPlaceData && WebLynx.isAlphaCode(racer.placeText);
-
-        if (hasPlaces && !hasAlphaCode) {
-          const timeDisplay = WebLynx.getResultsRowTimeDisplay(racer);
-          timeElement.textContent = timeDisplay.text;
-          timeElement.classList.toggle('is-time-pending', timeDisplay.pending);
-          timeElement.hidden = false;
-        } else {
-          timeElement.classList.remove('is-time-pending');
-          timeElement.hidden = true;
-        }
-
-        return { row: clone, name: racer.name || '-', affiliation: racer.affiliation || '-' };
-      }
-
-      function getRaceBodyElements() {
-        return [
-          document.querySelector('.race-details'),
-          document.querySelector('.results-section')
-        ];
-      }
-
-      function setRaceBodyVisible(visible) {
-        getRaceBodyElements().forEach((el) => {
-          if (el) {
-            el.hidden = !visible;
-          }
-        });
-      }
-
-      function fadeInRaceBody() {
-        const els = getRaceBodyElements().filter(Boolean);
-        els.forEach((el) => el.classList.add('is-race-faded-out'));
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            els.forEach((el) => el.classList.remove('is-race-faded-out'));
-          });
-        });
-      }
-
-      function hasDisplayableRace(data) {
-        return DEMO_RESULTS_VIEW || !!(data && data.event);
-      }
-
-      function clearRaceContent() {
-        const resultsContainer = document.getElementById('results-container');
-        resultsContainer.innerHTML = '';
-        resultsContainer.className = 'results-container';
-        resultsContainer.style.removeProperty('--racer-count');
-
-        document.getElementById('race-details-bar').textContent = '';
-
-        const unofficialIndicator = document.querySelector('.unofficial-indicator');
-        if (unofficialIndicator) {
-          unofficialIndicator.hidden = true;
-        }
-      }
-
-      function paintResults(data) {
-        if (!hasDisplayableRace(data)) {
-          clearRaceContent();
-          setRaceBodyVisible(false);
-          return;
-        }
-
-        const revealRaceBody = getRaceBodyElements().some((el) => el && el.hidden);
-        setRaceBodyVisible(true);
-
-        const config = WebLynx.applyViewConfig(data);
-        const unofficialIndicator = document.querySelector('.unofficial-indicator');
-
-        const allRacers = data.racers ? WebLynx.getActiveRacers(data.racers) : [];
-        let sortedRacers = allRacers;
-
-        if (DEMO_RESULTS_VIEW && sortedRacers.length === 0) {
-          sortedRacers = DEMO_RACERS;
-          document.getElementById('race-details-bar').textContent = 'Demo - Results Preview';
-        } else if (data.event) {
-          const eventName = data.event.eventName || 'Race Event';
-          const eventNumber = data.event.eventNumber || '';
-          const raceDetails = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
-          document.getElementById('race-details-bar').textContent = raceDetails;
-        }
-
-        const resultsContainer = document.getElementById('results-container');
-        resultsContainer.innerHTML = '';
-
-        const racerCount = sortedRacers.length;
-        resultsContainer.className = 'results-container';
-        if (racerCount >= 1 && racerCount <= 10) {
-          resultsContainer.classList.add(`racers-${racerCount}`);
-        }
-        resultsContainer.style.setProperty('--racer-count', String(Math.max(racerCount, 1)));
-
-        const hasPlaces = sortedRacers.some((racer) => racer.hasPlaceData);
-        resultsContainer.classList.toggle('startlist-mode', !hasPlaces && sortedRacers.length > 0);
-
-        if (unofficialIndicator) {
-          if (DEMO_RESULTS_VIEW || hasPlaces) {
-            unofficialIndicator.textContent = 'Unofficial Results';
-            unofficialIndicator.hidden = false;
-          } else if (sortedRacers.length > 0) {
-            unofficialIndicator.textContent = 'Startlist';
-            unofficialIndicator.hidden = false;
-          } else {
-            unofficialIndicator.hidden = true;
-          }
-        }
-
-        sortedRacers.forEach((racer) => {
-          const { row, name, affiliation } = createResultRow(racer, hasPlaces, config);
-          resultsContainer.appendChild(row);
-          const mounted = resultsContainer.lastElementChild;
-          WebLynx.fitOverlayText(mounted.querySelector('.racer-name'), name);
-          WebLynx.fitOverlayText(mounted.querySelector('.affiliation'), affiliation, { minScale: 0.68 });
-        });
-
-        if (revealRaceBody) {
-          fadeInRaceBody();
-        }
-      }
+      });
 
       const raceTransition = WebLynx.createRaceIdentityTransition({
         fadeMs: 500,
         holdMs: 3000,
-        getFadeElements: () => [
-          document.querySelector('.race-details'),
-          document.querySelector('.results-section')
-        ],
-        onBlank: clearRaceContent
+        getFadeElements: resultsBoard.getRaceBodyElements,
+        onBlank: resultsBoard.clearRaceContent
       });
 
       function updateResultsData() {
@@ -239,7 +83,7 @@
 
           WebLynx.applyViewConfig(data);
           WebLynx.applyMeetIdentity(data);
-          raceTransition.run(data, paintResults);
+          raceTransition.run(data, resultsBoard.paintResults);
         }, 'place');
       }
 
