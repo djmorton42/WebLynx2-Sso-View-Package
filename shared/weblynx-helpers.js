@@ -492,6 +492,19 @@ WebLynx.createRaceIdentityTransition = function(options) {
         return;
       }
 
+      // Empty identity → first real heat: paint immediately (view fades in on reveal).
+      if (paintedIdentity === '' && identity !== '') {
+        paintedIdentity = identity;
+        paintFn(data);
+        return;
+      }
+
+      if (paintedIdentity === null) {
+        paintedIdentity = identity;
+        paintFn(data);
+        return;
+      }
+
       pending = { data: data, paint: paintFn };
       beginTransition();
     }

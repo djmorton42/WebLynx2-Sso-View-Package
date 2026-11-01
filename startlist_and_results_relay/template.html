@@ -25,14 +25,14 @@
         />
       </header>
 
-      <section class="race-details" aria-live="polite">
+      <section class="race-details" aria-live="polite" hidden>
         <span class="status-badge unofficial-indicator" hidden>Startlist</span>
         <div class="race-details-panel">
-          <p class="race-details-text" id="race-details-bar">No active race</p>
+          <p class="race-details-text" id="race-details-bar"></p>
         </div>
       </section>
 
-      <section class="results-section" aria-label="Teams">
+      <section class="results-section" aria-label="Teams" hidden>
         <div class="results-container" id="results-container"></div>
       </section>
     </main>
@@ -111,6 +111,35 @@
         return { row: clone, name: racer.name || '-', affiliation: racer.affiliation || '-' };
       }
 
+      function getRaceBodyElements() {
+        return [
+          document.querySelector('.race-details'),
+          document.querySelector('.results-section')
+        ];
+      }
+
+      function setRaceBodyVisible(visible) {
+        getRaceBodyElements().forEach((el) => {
+          if (el) {
+            el.hidden = !visible;
+          }
+        });
+      }
+
+      function fadeInRaceBody() {
+        const els = getRaceBodyElements().filter(Boolean);
+        els.forEach((el) => el.classList.add('is-race-faded-out'));
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            els.forEach((el) => el.classList.remove('is-race-faded-out'));
+          });
+        });
+      }
+
+      function hasDisplayableRace(data) {
+        return DEMO_RESULTS_VIEW || !!(data && data.event);
+      }
+
       function clearRaceContent() {
         const resultsContainer = document.getElementById('results-container');
         resultsContainer.innerHTML = '';
@@ -126,6 +155,15 @@
       }
 
       function paintResults(data) {
+        if (!hasDisplayableRace(data)) {
+          clearRaceContent();
+          setRaceBodyVisible(false);
+          return;
+        }
+
+        const revealRaceBody = getRaceBodyElements().some((el) => el && el.hidden);
+        setRaceBodyVisible(true);
+
         const config = WebLynx.applyViewConfig(data);
         const unofficialIndicator = document.querySelector('.unofficial-indicator');
 
@@ -140,8 +178,6 @@
           const eventNumber = data.event.eventNumber || '';
           const raceDetails = eventNumber ? `${eventNumber} - ${eventName}` : eventName;
           document.getElementById('race-details-bar').textContent = raceDetails;
-        } else {
-          document.getElementById('race-details-bar').textContent = 'No active race';
         }
 
         const resultsContainer = document.getElementById('results-container');
@@ -176,6 +212,10 @@
           WebLynx.fitOverlayText(mounted.querySelector('.racer-name'), name);
           WebLynx.fitOverlayText(mounted.querySelector('.affiliation'), affiliation, { minScale: 0.68 });
         });
+
+        if (revealRaceBody) {
+          fadeInRaceBody();
+        }
       }
 
       const raceTransition = WebLynx.createRaceIdentityTransition({
