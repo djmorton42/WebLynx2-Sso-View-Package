@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Race Overlay — Relay (no names)</title>
+    <link rel="icon" type="image/png" href="/views/race_overlay_relay_anonymous/sso-logo.png">
+    <link rel="stylesheet" href="/views/shared/fonts.css">
+    <link rel="stylesheet" href="/views/race_overlay_relay_anonymous/styles.css">
+  </head>
+  <!-- TEMPORARY preview bg: restore class="preview-background" on body to show background.png for local testing. -->
+  <body>
+    <main class="broadcast-overlay" aria-label="Relay race overlay">
+      <div class="sso-logo">
+        <img src="/views/race_overlay_relay_anonymous/sso-logo.png" alt="Speed Skating Ontario">
+      </div>
+
+      <div class="race-clock placard-panel" id="race-clock">00:00.0</div>
+
+      <aside class="race-stack" aria-label="Race information">
+        <div class="laps-to-go placard-panel" id="bell-lap-container">
+          <span class="bell-icon" id="bell-lap-icon" aria-hidden="true">&#128276;</span>
+          <span class="laps-to-go-text" id="bell-lap-text">Bell Lap</span>
+        </div>
+
+        <div class="event-name placard-panel placard-panel--accent" id="event-name">
+          Event Name
+        </div>
+
+        <div class="racer-stack" id="racer-stack"></div>
+      </aside>
+    </main>
+
+    <template id="racer-template">
+      <div class="racer-block placard-panel racer-block--relay">
+        <div class="lane-color" aria-hidden="true"></div>
+        <div class="racer-info">
+          <div class="racer-name"></div>
+          <div class="affiliation"></div>
+        </div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script src="/views/shared/sso-event-display.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+      const SORT_BY = 'lane';
+
+      const lapsToGo = WebLynx.createLapsToGoController();
+      window.testLapsToGo = lapsToGo.testLapsToGo;
+      window.testBellLap = lapsToGo.testBellLap;
+
+      function updateRacerBlock(block, racer, context) {
+        const { config } = context;
+        block.querySelector('.lane-color').style.backgroundColor =
+          WebLynx.getLaneColorFromRacerName(config, racer.name);
+        WebLynx.fitOverlayText(block.querySelector('.racer-name'), racer.name || '-');
+        WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
+      }
+
+      function updateRaceData() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            console.error('Error fetching race data:', error);
+            return;
+          }
+
+          const config = WebLynx.applyViewConfig(data);
+          lapsToGo.update(data, config);
+          WebLynx.updateRaceClockDisplay(data);
+
+          SsoEventDisplay.applyEventHeading(
+            document.getElementById('event-name'),
+            data.event?.eventNumber || '',
+            data.event?.eventName,
+            'Event Name'
+          );
+
+          WebLynx.syncRacerStack(document.getElementById('racer-stack'), WebLynx.getActiveRacers(data.racers), {
+            updateRow: updateRacerBlock,
+            context: { config }
+          });
+        }, SORT_BY);
+      }
+
+      WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL, SORT_BY, 'fastUpdateInterval');
+    </script>
+  </body>
+</html>

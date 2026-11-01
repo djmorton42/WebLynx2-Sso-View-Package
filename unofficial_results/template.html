@@ -40,6 +40,7 @@
         <div class="racer-info">
           <div class="racer-name"></div>
           <div class="affiliation"></div>
+          <div class="roster" hidden></div>
         </div>
         <div class="final-time"></div>
       </div>
@@ -104,6 +105,12 @@
         
         clone.querySelector('.racer-name').textContent = racer.name || '-';
         clone.querySelector('.affiliation').textContent = racer.affiliation || '-';
+        const rosterEl = clone.querySelector('.roster');
+        const rosterText = WebLynx.formatRelayRoster(racer.roster);
+        if (rosterEl) {
+          rosterEl.hidden = !rosterText;
+          rosterEl.textContent = rosterText;
+        }
         
         const timeElement = clone.querySelector('.final-time');
         if (racer.finishTime || racer.finishTimeFormatted) {

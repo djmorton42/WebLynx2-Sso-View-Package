@@ -852,6 +852,33 @@ WebLynx.setTextIfChanged = function(element, text) {
 };
 
 /**
+ * Relay member labels for a roster array from the race API.
+ * Unknown ids (blank names) are shown as the id.
+ * options.lastNameOnly: live overlay. Otherwise "First Last".
+ */
+WebLynx.formatRelayRoster = function(roster, options) {
+  if (!Array.isArray(roster) || roster.length === 0) {
+    return '';
+  }
+
+  const lastNameOnly = !!(options && options.lastNameOnly);
+  const names = [];
+  for (let i = 0; i < roster.length; i++) {
+    const member = roster[i] || {};
+    const first = String(member.firstName || '').trim();
+    const last = String(member.lastName || '').trim();
+    const id = String(member.id || '').trim();
+    const label = lastNameOnly
+      ? (last || id)
+      : ((first + ' ' + last).trim() || id);
+    if (label) {
+      names.push(label);
+    }
+  }
+  return names.join(', ');
+};
+
+/**
  * Fits overlay label text inside its column: shrinks font size to stay on one line,
  * then wraps up to two lines at the minimum size if still too long.
  */

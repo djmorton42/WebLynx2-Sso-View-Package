@@ -1,1 +1,1 @@
-Relay race overlay — race clock and team list with name-based lane colors
+Relay race overlay — team name, club, and skater last names

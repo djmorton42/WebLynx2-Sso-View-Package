@@ -36,6 +36,7 @@
         <div class="racer-info">
           <div class="racer-name"></div>
           <div class="affiliation"></div>
+          <div class="roster" hidden></div>
         </div>
       </div>
     </template>
@@ -56,6 +57,16 @@
           WebLynx.getLaneColorFromRacerName(config, racer.name);
         WebLynx.fitOverlayText(block.querySelector('.racer-name'), racer.name || '-');
         WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
+        const rosterEl = block.querySelector('.roster');
+        const rosterText = WebLynx.formatRelayRoster(racer.roster, { lastNameOnly: true });
+        if (rosterEl) {
+          rosterEl.hidden = !rosterText;
+          if (rosterText) {
+            WebLynx.fitOverlayText(rosterEl, rosterText, { minScale: 0.62, maxLines: 1 });
+          } else {
+            rosterEl.textContent = '';
+          }
+        }
       }
 
       function updateRaceData() {

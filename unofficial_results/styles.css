@@ -154,6 +154,16 @@ body {
   font-weight: 600;
 }
 
+.roster {
+  margin-top: 2px;
+  font-size: 1.05em;
+  color: #dddddd;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .final-time {
   font-size: 1.8em;
   font-weight: 900;

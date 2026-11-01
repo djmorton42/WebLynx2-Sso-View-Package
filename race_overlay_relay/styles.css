@@ -297,6 +297,24 @@ body.preview-background {
   word-break: break-word;
 }
 
+.roster {
+  margin: 2px 0 0;
+  color: var(--muted-white);
+  font-family: var(--condensed);
+  font-size: clamp(10px, 0.75vw, 13px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.roster.fit-text--wrap {
+  line-height: 1.1;
+  word-break: break-word;
+}
+
 .split-time {
   min-width: clamp(68px, 5.5vw, 84px);
   font-family: var(--condensed);
@@ -347,7 +365,11 @@ body.preview-background {
 .racer-stack.racers-7 .affiliation,
 .racer-stack.racers-8 .affiliation,
 .racer-stack.racers-9 .affiliation,
-.racer-stack.racers-10 .affiliation {
+.racer-stack.racers-10 .affiliation,
+.racer-stack.racers-7 .roster,
+.racer-stack.racers-8 .roster,
+.racer-stack.racers-9 .roster,
+.racer-stack.racers-10 .roster {
   font-size: clamp(10px, 0.78vw, 12px);
 }
 

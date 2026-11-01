@@ -95,6 +95,17 @@
       const affiliation = racer.affiliation || '-';
       WebLynx.fitOverlayText(rowEl.querySelector('.racer-name'), name);
       WebLynx.fitOverlayText(rowEl.querySelector('.affiliation'), affiliation, { minScale: 0.68 });
+
+      const rosterEl = rowEl.querySelector('.roster');
+      if (rosterEl) {
+        const rosterText = WebLynx.formatRelayRoster(racer.roster);
+        rosterEl.hidden = !rosterText;
+        if (rosterText) {
+          WebLynx.fitOverlayText(rosterEl, rosterText, { minScale: 0.62, maxLines: 1 });
+        } else {
+          rosterEl.textContent = '';
+        }
+      }
     }
 
     function createResultRow(racer, hasPlaces, config) {
