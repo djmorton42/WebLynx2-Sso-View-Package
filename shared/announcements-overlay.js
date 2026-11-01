@@ -21,6 +21,24 @@
     });
   }
 
+  /** Seconds added to local time for display (from announcements view.yaml venue-clock-skew). */
+  function getVenueClockSkewSeconds() {
+    const cfg = WebLynx._viewConfig || {};
+    const kv = WebLynx._keyValues || {};
+    const raw = cfg['venue-clock-skew'] ?? kv['venue-clock-skew'];
+    if (raw === undefined || raw === null || raw === '') {
+      return 0;
+    }
+    const seconds = Number(raw);
+    return Number.isFinite(seconds) ? seconds : 0;
+  }
+
+  function venueClockDate(now) {
+    const base = now instanceof Date ? now : new Date();
+    const skewMs = getVenueClockSkewSeconds() * 1000;
+    return new Date(base.getTime() + skewMs);
+  }
+
   function startVenueClock() {
     const clockEl = document.getElementById('venue-clock-time');
     if (!clockEl || venueClockTimer !== null) {
@@ -28,10 +46,10 @@
     }
 
     function tick() {
-      const now = new Date();
-      const formatted = formatVenueClockTime(now);
+      const displayTime = venueClockDate(new Date());
+      const formatted = formatVenueClockTime(displayTime);
       WebLynx.setTextIfChanged(clockEl, formatted);
-      clockEl.dateTime = now.toISOString();
+      clockEl.dateTime = displayTime.toISOString();
     }
 
     tick();

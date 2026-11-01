@@ -1,0 +1,4 @@
+properties:
+- key: venue-clock-skew
+  type: integer
+  value: 0
