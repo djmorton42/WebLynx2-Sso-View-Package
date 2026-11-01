@@ -406,6 +406,29 @@ body.preview-background {
   display: none;
 }
 
+.final-time.is-time-pending {
+  color: var(--muted-white);
+  letter-spacing: 0.07em;
+  animation: result-time-pending-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes result-time-pending-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.52;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .final-time.is-time-pending {
+    animation: none;
+  }
+}
+
 /* Responsive tuning by skater count */
 .results-container.racers-2 {
   --row-gap: clamp(10px, 1.4vh, 16px);

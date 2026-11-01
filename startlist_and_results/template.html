@@ -101,10 +101,12 @@
         const hasAlphaCode = racer.hasPlaceData && WebLynx.isAlphaCode(racer.placeText);
 
         if (hasPlaces && !hasAlphaCode) {
-          const timeToShow = racer.finalTime || racer.cumulativeSplitTime;
-          timeElement.textContent = WebLynx.formatTime(timeToShow);
+          const timeDisplay = WebLynx.getResultsRowTimeDisplay(racer);
+          timeElement.textContent = timeDisplay.text;
+          timeElement.classList.toggle('is-time-pending', timeDisplay.pending);
           timeElement.hidden = false;
         } else {
+          timeElement.classList.remove('is-time-pending');
           timeElement.hidden = true;
         }
 
