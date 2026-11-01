@@ -1,1 +1,1 @@
-Event title card with optional live update announcement text
+Event title card with optional live update announcement text and venue clock (venue-clock-skew in view.yaml adjusts display vs the host PC).

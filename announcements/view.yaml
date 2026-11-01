@@ -1,3 +1,6 @@
+# venue-clock-skew: seconds added to the host PC clock for the header display.
+# Match the arena scoreboard: if the arena reads later than the PC, use a positive value
+# (e.g. arena 2 min fast → 120). If the arena reads earlier, use a negative value.
 properties:
 - key: venue-clock-skew
   type: integer
