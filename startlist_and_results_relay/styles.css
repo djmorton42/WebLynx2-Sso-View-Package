@@ -239,6 +239,17 @@ body.preview-background {
   pointer-events: none;
 }
 
+.race-details.is-race-shown,
+.results-section.is-race-shown {
+  animation: none;
+}
+
+.race-details.is-race-fading,
+.results-section.is-race-fading {
+  animation: none;
+  transition: none;
+}
+
 .results-container {
   width: 50%;
   max-width: 100%;
@@ -428,24 +439,6 @@ body.preview-background {
 .final-time.is-time-pending {
   color: var(--muted-white);
   letter-spacing: 0.07em;
-  animation: result-time-pending-pulse 2.4s ease-in-out infinite;
-}
-
-@keyframes result-time-pending-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.52;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .final-time.is-time-pending {
-    animation: none;
-  }
 }
 
 /* Responsive tuning by skater count */

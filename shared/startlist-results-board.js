@@ -49,6 +49,7 @@
     let lastHasPlaces = null;
     let startlistFadeBusy = false;
     let startlistFadeQueued = null;
+    let raceRevealToken = 0;
 
     function getTemplate() {
       return document.getElementById(templateId);
@@ -65,13 +66,19 @@
         const timeDisplay = WebLynx.getResultsRowTimeDisplay(racer);
         timeElement.textContent = timeDisplay.text;
         timeElement.classList.toggle('is-time-pending', timeDisplay.pending);
+        if (!timeDisplay.pending) {
+          timeElement.style.opacity = '';
+        }
         timeElement.hidden = false;
+        WebLynx.syncResultsPendingPulse();
         return;
       }
 
       timeElement.textContent = '';
       timeElement.classList.remove('is-time-pending');
+      timeElement.style.opacity = '';
       timeElement.hidden = true;
+      WebLynx.syncResultsPendingPulse();
     }
 
     function applyRowElement(rowEl, racer, hasPlaces, config) {
@@ -238,14 +245,54 @@
       });
     }
 
+    function finishRaceReveal(els) {
+      els.forEach(function (el) {
+        el.style.opacity = '';
+        el.classList.remove('is-race-faded-out');
+        el.classList.remove('is-race-fading');
+      });
+    }
+
+    /**
+     * Fade the title and rows in from opacity 0 on the wall clock.
+     * The load-in keyframes override a CSS opacity transition, and OBS can
+     * finish that transition before it shows a frame, so the new start list snaps
+     * on at full opacity. Inline opacity from performance.now() stays a 500ms fade.
+     */
     function fadeInRaceBody() {
       const els = getRaceBodyElements().filter(Boolean);
-      els.forEach(function (el) { el.classList.add('is-race-faded-out'); });
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          els.forEach(function (el) { el.classList.remove('is-race-faded-out'); });
-        });
+      const token = ++raceRevealToken;
+      const duration = startlistToResultsFadeMs;
+
+      els.forEach(function (el) {
+        el.classList.add('is-race-shown');
+        el.classList.add('is-race-fading');
+        el.classList.add('is-race-faded-out');
+        el.style.opacity = '0';
       });
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        finishRaceReveal(els);
+        return;
+      }
+
+      const start = performance.now();
+      function step() {
+        if (token !== raceRevealToken) {
+          return;
+        }
+        const t = Math.min(1, (performance.now() - start) / duration);
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        els.forEach(function (el) {
+          el.style.opacity = String(eased);
+        });
+        if (t < 1) {
+          requestAnimationFrame(step);
+          return;
+        }
+        finishRaceReveal(els);
+      }
+      requestAnimationFrame(step);
     }
 
     function clearRaceContent() {
@@ -267,10 +314,21 @@
         unofficialIndicator.hidden = true;
       }
 
-      setRaceBodyFaded(false);
       lastHasPlaces = null;
       startlistFadeBusy = false;
       startlistFadeQueued = null;
+    }
+
+    /**
+     * After a race-change fade-out: drop the old board and take the title panel
+     * and rows off screen. Leaving them faded-in paints an empty title bar
+     * (black panel, red bracket) until the next start list is ready, and that
+     * list then appears at full opacity instead of fading in.
+     */
+    function blankRaceForTransition() {
+      clearRaceContent();
+      setRaceBodyFaded(true);
+      setRaceBodyVisible(false);
     }
 
     function runStartlistToResultsFade(payload) {
@@ -378,6 +436,7 @@
     return {
       paintResults: paintResults,
       clearRaceContent: clearRaceContent,
+      blankRaceForTransition: blankRaceForTransition,
       getRaceBodyElements: getRaceBodyElements,
       fadeInRaceBody: fadeInRaceBody,
       resetMorphState: function () {

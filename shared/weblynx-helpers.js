@@ -232,6 +232,91 @@ WebLynx.getResultsRowTimeDisplay = function(racer, options) {
   return { text: pendingLabel, pending: true };
 };
 
+/**
+ * Pulse pending result times from the wall clock.
+ * OBS Browser Source advances CSS animation time on its composite clock, so a
+ * keyframe pulse runs much faster there than in Chrome. performance.now() stays
+ * on real time in both. Call after toggling .is-time-pending.
+ */
+(function() {
+  const PERIOD_MS = 2400;
+  const MIN_OPACITY = 0.52;
+  const pulsed = new Set();
+  let frameId = 0;
+  let running = false;
+
+  function prefersReducedMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function clearOpacity(el) {
+    el.style.opacity = '';
+  }
+
+  function opacityAt(now) {
+    const t = (now % PERIOD_MS) / PERIOD_MS;
+    const wave = 0.5 - 0.5 * Math.cos(t * Math.PI * 2);
+    return String(1 - (1 - MIN_OPACITY) * wave);
+  }
+
+  function stop() {
+    if (frameId) {
+      cancelAnimationFrame(frameId);
+      frameId = 0;
+    }
+    pulsed.forEach(clearOpacity);
+    pulsed.clear();
+    running = false;
+  }
+
+  function tick() {
+    frameId = 0;
+    if (prefersReducedMotion()) {
+      stop();
+      return;
+    }
+
+    const pending = document.querySelectorAll('.final-time.is-time-pending');
+    if (!pending.length) {
+      stop();
+      return;
+    }
+
+    const opacity = opacityAt(performance.now());
+    const live = new Set();
+    for (let i = 0; i < pending.length; i++) {
+      const el = pending[i];
+      el.style.opacity = opacity;
+      live.add(el);
+      pulsed.add(el);
+    }
+
+    pulsed.forEach(function(el) {
+      if (!live.has(el)) {
+        clearOpacity(el);
+        pulsed.delete(el);
+      }
+    });
+
+    frameId = requestAnimationFrame(tick);
+  }
+
+  WebLynx.syncResultsPendingPulse = function() {
+    if (prefersReducedMotion()) {
+      stop();
+      return;
+    }
+    if (running) {
+      return;
+    }
+    if (!document.querySelector('.final-time.is-time-pending')) {
+      return;
+    }
+    running = true;
+    frameId = requestAnimationFrame(tick);
+  };
+})();
+
 WebLynx.formatRaceTime = function(timeSpanString) {
   if (!timeSpanString) return '00:00.0';
 
