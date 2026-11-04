@@ -16,10 +16,10 @@ properties:
   value: White
 - key: laneColorNames.6
   type: string
-  value: Navy Blue
+  value: Royal Blue
 - key: laneColorNames.7
   type: string
-  value: Gray
+  value: Grey
 - key: laneColorNames.8
   type: string
   value: Pink
