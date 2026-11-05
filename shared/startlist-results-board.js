@@ -45,6 +45,9 @@
     const startlistToResultsFadeMs = Number(options.startlistToResultsFadeMs) > 0
       ? Number(options.startlistToResultsFadeMs)
       : STARTLIST_TO_RESULTS_FADE_MS;
+    const relayRosterNamesPerLine = Number(options.relayRosterNamesPerLine) > 0
+      ? Number(options.relayRosterNamesPerLine)
+      : 0;
 
     let lastHasPlaces = null;
     let startlistFadeBusy = false;
@@ -105,12 +108,33 @@
 
       const rosterEl = rowEl.querySelector('.roster');
       if (rosterEl) {
-        const rosterText = WebLynx.formatRelayRoster(racer.roster);
-        rosterEl.hidden = !rosterText;
-        if (rosterText) {
-          WebLynx.fitOverlayText(rosterEl, rosterText, { minScale: 0.62, maxLines: 1 });
+        if (relayRosterNamesPerLine > 0 && rosterEl.querySelector('.roster-line')) {
+          const lines = WebLynx.formatRelayRosterLines(racer.roster, {
+            namesPerLine: relayRosterNamesPerLine
+          });
+          rosterEl.hidden = lines.length === 0;
+          while (rosterEl.querySelectorAll('.roster-line').length < lines.length) {
+            const lineEl = document.createElement('div');
+            lineEl.className = 'roster-line';
+            rosterEl.appendChild(lineEl);
+          }
+          rosterEl.querySelectorAll('.roster-line').forEach(function (lineEl, index) {
+            const lineText = lines[index] || '';
+            lineEl.hidden = !lineText;
+            if (lineText) {
+              WebLynx.fitOverlayText(lineEl, lineText, { minScale: 0.62, maxLines: 1 });
+            } else {
+              lineEl.textContent = '';
+            }
+          });
         } else {
-          rosterEl.textContent = '';
+          const rosterText = WebLynx.formatRelayRoster(racer.roster);
+          rosterEl.hidden = !rosterText;
+          if (rosterText) {
+            WebLynx.fitOverlayText(rosterEl, rosterText, { minScale: 0.62, maxLines: 1 });
+          } else {
+            rosterEl.textContent = '';
+          }
         }
       }
     }

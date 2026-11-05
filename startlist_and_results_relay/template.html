@@ -44,7 +44,10 @@
         <div class="racer-info">
           <div class="racer-name"></div>
           <div class="affiliation"></div>
-          <div class="roster" hidden></div>
+          <div class="roster" hidden>
+            <div class="roster-line"></div>
+            <div class="roster-line"></div>
+          </div>
         </div>
         <div class="final-time"></div>
       </div>
@@ -57,6 +60,7 @@
       const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
 
       const resultsBoard = WebLynx.createStartlistResultsBoard({
+        relayRosterNamesPerLine: 2,
         demoResultsView: false,
         demoRacers: [
           { lane: 1, name: 'TEAM RED', affiliation: 'Club A', hasPlaceData: true, placeText: '1', finalTime: '00:01:25.3400000', cumulativeSplitTime: '00:01:25.3400000' },

@@ -250,6 +250,7 @@ body.preview-background {
 
 .racer-block--relay {
   grid-template-columns: clamp(28px, 2.2vw, 34px) minmax(0, 1fr);
+  align-items: start;
 }
 
 .lane-color {
@@ -298,7 +299,14 @@ body.preview-background {
 }
 
 .roster {
-  margin: 2px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1px, 0.2vh, 3px);
+  margin-top: clamp(2px, 0.25vh, 4px);
+  min-width: 0;
+}
+
+.roster-line {
   color: var(--muted-white);
   font-family: var(--condensed);
   font-size: clamp(10px, 0.75vw, 13px);
@@ -310,9 +318,13 @@ body.preview-background {
   min-width: 0;
 }
 
-.roster.fit-text--wrap {
+.roster-line.fit-text--wrap {
   line-height: 1.1;
   word-break: break-word;
+}
+
+.roster-line[hidden] {
+  display: none;
 }
 
 .split-time {
@@ -366,10 +378,10 @@ body.preview-background {
 .racer-stack.racers-8 .affiliation,
 .racer-stack.racers-9 .affiliation,
 .racer-stack.racers-10 .affiliation,
-.racer-stack.racers-7 .roster,
-.racer-stack.racers-8 .roster,
-.racer-stack.racers-9 .roster,
-.racer-stack.racers-10 .roster {
+.racer-stack.racers-7 .roster-line,
+.racer-stack.racers-8 .roster-line,
+.racer-stack.racers-9 .roster-line,
+.racer-stack.racers-10 .roster-line {
   font-size: clamp(10px, 0.78vw, 12px);
 }
 

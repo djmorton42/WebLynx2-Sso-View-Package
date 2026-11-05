@@ -941,9 +941,9 @@ WebLynx.setTextIfChanged = function(element, text) {
  * Unknown ids (blank names) are shown as the id.
  * options.lastNameOnly: live overlay. Otherwise "First Last".
  */
-WebLynx.formatRelayRoster = function(roster, options) {
+WebLynx.collectRelayRosterNames = function(roster, options) {
   if (!Array.isArray(roster) || roster.length === 0) {
-    return '';
+    return [];
   }
 
   const lastNameOnly = !!(options && options.lastNameOnly);
@@ -960,7 +960,31 @@ WebLynx.formatRelayRoster = function(roster, options) {
       names.push(label);
     }
   }
-  return names.join(', ');
+  return names;
+};
+
+WebLynx.formatRelayRoster = function(roster, options) {
+  return WebLynx.collectRelayRosterNames(roster, options).join(', ');
+};
+
+/**
+ * Relay roster as display lines (e.g. two skater names per line on start lists).
+ * options.namesPerLine: max names joined on each line; default is all on one line.
+ */
+WebLynx.formatRelayRosterLines = function(roster, options) {
+  const opts = options || {};
+  const names = WebLynx.collectRelayRosterNames(roster, opts);
+  if (names.length === 0) {
+    return [];
+  }
+
+  const namesPerLine = Number(opts.namesPerLine);
+  const chunk = namesPerLine > 0 ? namesPerLine : names.length;
+  const lines = [];
+  for (let i = 0; i < names.length; i += chunk) {
+    lines.push(names.slice(i, i + chunk).join(', '));
+  }
+  return lines;
 };
 
 /**

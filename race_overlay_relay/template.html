@@ -36,7 +36,10 @@
         <div class="racer-info">
           <div class="racer-name"></div>
           <div class="affiliation"></div>
-          <div class="roster" hidden></div>
+          <div class="roster" hidden>
+            <div class="roster-line"></div>
+            <div class="roster-line"></div>
+          </div>
         </div>
       </div>
     </template>
@@ -46,6 +49,7 @@
     <script>
       const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
       const SORT_BY = 'lane';
+      const RELAY_ROSTER_NAMES_PER_LINE = 2;
 
       const lapsToGo = WebLynx.createLapsToGoController();
       window.testLapsToGo = lapsToGo.testLapsToGo;
@@ -58,13 +62,36 @@
         WebLynx.fitOverlayText(block.querySelector('.racer-name'), racer.name || '-');
         WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
         const rosterEl = block.querySelector('.roster');
-        const rosterText = WebLynx.formatRelayRoster(racer.roster, { lastNameOnly: true });
         if (rosterEl) {
-          rosterEl.hidden = !rosterText;
-          if (rosterText) {
-            WebLynx.fitOverlayText(rosterEl, rosterText, { minScale: 0.62, maxLines: 1 });
+          const rosterOptions = { lastNameOnly: true };
+          if (rosterEl.querySelector('.roster-line')) {
+            const lines = WebLynx.formatRelayRosterLines(racer.roster, {
+              namesPerLine: RELAY_ROSTER_NAMES_PER_LINE,
+              lastNameOnly: true
+            });
+            rosterEl.hidden = lines.length === 0;
+            while (rosterEl.querySelectorAll('.roster-line').length < lines.length) {
+              const lineEl = document.createElement('div');
+              lineEl.className = 'roster-line';
+              rosterEl.appendChild(lineEl);
+            }
+            rosterEl.querySelectorAll('.roster-line').forEach(function (lineEl, index) {
+              const lineText = lines[index] || '';
+              lineEl.hidden = !lineText;
+              if (lineText) {
+                WebLynx.fitOverlayText(lineEl, lineText, { minScale: 0.62, maxLines: 1 });
+              } else {
+                lineEl.textContent = '';
+              }
+            });
           } else {
-            rosterEl.textContent = '';
+            const rosterText = WebLynx.formatRelayRoster(racer.roster, rosterOptions);
+            rosterEl.hidden = !rosterText;
+            if (rosterText) {
+              WebLynx.fitOverlayText(rosterEl, rosterText, { minScale: 0.62, maxLines: 1 });
+            } else {
+              rosterEl.textContent = '';
+            }
           }
         }
       }

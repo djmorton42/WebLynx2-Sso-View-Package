@@ -271,7 +271,7 @@ body.preview-background {
 .results-container.racers-3,
 .results-container.racers-4,
 .results-container.racers-5 {
-  --row-layout-count: 6;
+  --row-layout-count: 5;
   justify-content: flex-start;
 }
 
@@ -400,7 +400,14 @@ body.preview-background {
 }
 
 .roster {
-  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.25vh, 4px);
+  margin-top: clamp(3px, 0.35vh, 6px);
+  min-width: 0;
+}
+
+.roster-line {
   color: var(--muted-white);
   font-family: var(--condensed);
   font-size: clamp(12px, 0.95vw, 17px);
@@ -412,9 +419,13 @@ body.preview-background {
   min-width: 0;
 }
 
-.roster.fit-text--wrap {
+.roster-line.fit-text--wrap {
   line-height: 1.1;
   word-break: break-word;
+}
+
+.roster-line[hidden] {
+  display: none;
 }
 
 .final-time {
@@ -480,8 +491,8 @@ body.preview-background {
 
 .results-container.racers-9 .affiliation,
 .results-container.racers-10 .affiliation,
-.results-container.racers-9 .roster,
-.results-container.racers-10 .roster {
+.results-container.racers-9 .roster-line,
+.results-container.racers-10 .roster-line {
   font-size: clamp(11px, 0.9vw, 16px);
 }
 
