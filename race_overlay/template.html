@@ -67,33 +67,36 @@
         );
       }
 
+      // Created once so the delay buffer persists across polls (videoDelayMs in race_overlay/view.yaml).
+      const renderRaceData = WebLynx.delayRaceData((data, error) => {
+        if (error) {
+          console.error('Error fetching race data:', error);
+          return;
+        }
+
+        const config = WebLynx.applyViewConfig(data);
+        lapsToGo.update(data, config);
+
+        WebLynx.updateRaceClockDisplay(data);
+
+        SsoEventDisplay.applyEventHeading(
+          document.getElementById('event-name'),
+          data.event?.eventNumber || '',
+          data.event?.eventName,
+          'Event Name'
+        );
+
+        const activeRacers = WebLynx.getActiveRacers(data.racers);
+        const halfLapModeEnabled = data.halfLapModeEnabled || false;
+
+        WebLynx.syncRacerStack(document.getElementById('racer-stack'), activeRacers, {
+          updateRow: updateRacerBlock,
+          context: { raceStatus: data.status, halfLapModeEnabled, config }
+        });
+      });
+
       function updateRaceData() {
-        WebLynx.updateRaceData((data, error) => {
-          if (error) {
-            console.error('Error fetching race data:', error);
-            return;
-          }
-
-          const config = WebLynx.applyViewConfig(data);
-          lapsToGo.update(data, config);
-
-          WebLynx.updateRaceClockDisplay(data);
-
-          SsoEventDisplay.applyEventHeading(
-            document.getElementById('event-name'),
-            data.event?.eventNumber || '',
-            data.event?.eventName,
-            'Event Name'
-          );
-
-          const activeRacers = WebLynx.getActiveRacers(data.racers);
-          const halfLapModeEnabled = data.halfLapModeEnabled || false;
-
-          WebLynx.syncRacerStack(document.getElementById('racer-stack'), activeRacers, {
-            updateRow: updateRacerBlock,
-            context: { raceStatus: data.status, halfLapModeEnabled, config }
-          });
-        }, SORT_BY);
+        WebLynx.updateRaceData(renderRaceData, SORT_BY);
       }
 
       WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL, SORT_BY, 'fastUpdateInterval');
