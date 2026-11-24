@@ -104,3 +104,6 @@ properties:
 - key: finishedText
   type: string
   value: '-'
+- key: videoDelayMs
+  type: integer
+  value: 0
