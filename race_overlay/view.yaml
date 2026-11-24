@@ -1,4 +1,0 @@
-properties:
-  - key: videoDelayMs
-    type: integer
-    value: 0

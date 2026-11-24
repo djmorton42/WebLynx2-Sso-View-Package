@@ -67,7 +67,7 @@
         );
       }
 
-      // Created once so the delay buffer persists across polls (videoDelayMs in race_overlay/view.yaml).
+      // Created once so the delay buffer persists across polls. Opts this view in to the shared videoDelayMs.
       const renderRaceData = WebLynx.delayRaceData((data, error) => {
         if (error) {
           console.error('Error fetching race data:', error);
