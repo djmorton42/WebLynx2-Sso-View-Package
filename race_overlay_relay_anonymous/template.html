@@ -58,29 +58,32 @@
         WebLynx.fitOverlayText(block.querySelector('.affiliation'), racer.affiliation || '-', { minScale: 0.68 });
       }
 
+      // Created once so the delay buffer persists across polls. Opts this view in to the shared videoDelayMs.
+      const renderRaceData = WebLynx.delayRaceData((data, error) => {
+        if (error) {
+          console.error('Error fetching race data:', error);
+          return;
+        }
+
+        const config = WebLynx.applyViewConfig(data);
+        lapsToGo.update(data, config);
+        WebLynx.updateRaceClockDisplay(data);
+
+        SsoEventDisplay.applyEventHeading(
+          document.getElementById('event-name'),
+          data.event?.eventNumber || '',
+          data.event?.eventName,
+          'Event Name'
+        );
+
+        WebLynx.syncRacerStack(document.getElementById('racer-stack'), WebLynx.getActiveRacers(data.racers), {
+          updateRow: updateRacerBlock,
+          context: { config }
+        });
+      });
+
       function updateRaceData() {
-        WebLynx.updateRaceData((data, error) => {
-          if (error) {
-            console.error('Error fetching race data:', error);
-            return;
-          }
-
-          const config = WebLynx.applyViewConfig(data);
-          lapsToGo.update(data, config);
-          WebLynx.updateRaceClockDisplay(data);
-
-          SsoEventDisplay.applyEventHeading(
-            document.getElementById('event-name'),
-            data.event?.eventNumber || '',
-            data.event?.eventName,
-            'Event Name'
-          );
-
-          WebLynx.syncRacerStack(document.getElementById('racer-stack'), WebLynx.getActiveRacers(data.racers), {
-            updateRow: updateRacerBlock,
-            context: { config }
-          });
-        }, SORT_BY);
+        WebLynx.updateRaceData(renderRaceData, SORT_BY);
       }
 
       WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL, SORT_BY, 'fastUpdateInterval');
